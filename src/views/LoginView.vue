@@ -26,7 +26,6 @@ const handleLogin = async () => {
 
     // Navigate to dashboard or home after successful login
     router.push('/dashboard')
-    console.log('Login successful:', authStore.user)
   } catch (error) {
     console.error('Login error:', error)
     errorMessage.value = error instanceof Error ? error.message : 'Login failed. Please try again.'
