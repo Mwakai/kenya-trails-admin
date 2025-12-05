@@ -7,14 +7,27 @@ interface User {
 }
 
 interface LoginResponse {
-  access_token: string
-  token_type: string
-  user: User
+  data: {
+    token: string
+  }
+  message: string
+  status: number
 }
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
-  const user = ref<User | null>(JSON.parse(localStorage.getItem('user') || 'null'))
+
+  const getUserFromStorage = (): User | null => {
+    const userString = localStorage.getItem('user')
+    if (!userString || userString === 'undefined' || userString === 'null') return null
+    try {
+      return JSON.parse(userString)
+    } catch {
+      return null
+    }
+  }
+
+  const user = ref<User | null>(getUserFromStorage())
 
   const isAuthenticated = computed(() => !!token.value)
 
@@ -25,7 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify({ email, password }),
     })
@@ -37,13 +50,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     const data: LoginResponse = await response.json()
 
-    // Store token and user data
-    token.value = data.access_token
-    user.value = data.user
+    // Store token
+    token.value = data.data.token
 
     // Persist to localStorage
-    localStorage.setItem('token', data.access_token)
-    localStorage.setItem('user', JSON.stringify(data.user))
+    localStorage.setItem('token', data.data.token)
+
+    // TODO: Fetch user data from a separate endpoint if needed
+    // For now, user will remain null until we have a user endpoint
   }
 
   function logout() {

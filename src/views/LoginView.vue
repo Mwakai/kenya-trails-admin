@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -24,8 +24,11 @@ const handleLogin = async () => {
   try {
     await authStore.login(email.value, password.value)
 
-    // Navigate to dashboard or home after successful login
-    router.push('/dashboard')
+    // Wait for reactive updates to propagate before navigating
+    await nextTick()
+
+    // Navigate to dashboard after successful login (replace to avoid back button to login)
+    await router.replace({ name: 'dashboard' })
   } catch (error) {
     console.error('Login error:', error)
     errorMessage.value = error instanceof Error ? error.message : 'Login failed. Please try again.'
