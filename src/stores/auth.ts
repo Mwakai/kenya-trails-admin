@@ -60,11 +60,28 @@ export const useAuthStore = defineStore('auth', () => {
     // For now, user will remain null until we have a user endpoint
   }
 
-  function logout() {
-    token.value = null
-    user.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+  async function logout(): Promise<void> {
+    const apiUrl = import.meta.env.VITE_API_URL
+
+    try {
+      if (token.value) {
+        await fetch(`${apiUrl}/admin/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${token.value}`,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('Logout API error:', error)
+    } finally {
+      token.value = null
+      user.value = null
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+    }
   }
 
   function getToken(): string | null {

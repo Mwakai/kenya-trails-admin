@@ -5,9 +5,9 @@ import { useRouter } from 'vue-router'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/')
+const handleLogout = async () => {
+  await authStore.logout()
+  router.replace({ name: 'login' })
 }
 </script>
 
