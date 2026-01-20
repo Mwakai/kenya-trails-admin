@@ -1,24 +1,18 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import type { User, LoginResponse } from '@/types/auth'
 
-interface User {
-  name: string
-  email: string
-}
-
-interface LoginResponse {
-  data: {
-    token: string
-  }
-  message: string
-  status: number
-}
+const STORAGE_KEYS = {
+  TOKEN: 'token',
+  USER: 'user',
+  PERMISSIONS: 'permissions',
+} as const
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(localStorage.getItem('token'))
+  const token = ref<string | null>(localStorage.getItem(STORAGE_KEYS.TOKEN))
 
   const getUserFromStorage = (): User | null => {
-    const userString = localStorage.getItem('user')
+    const userString = localStorage.getItem(STORAGE_KEYS.USER)
     if (!userString || userString === 'undefined' || userString === 'null') return null
     try {
       return JSON.parse(userString)
@@ -27,9 +21,57 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const getPermissionsFromStorage = (): string[] => {
+    const permissionsString = localStorage.getItem(STORAGE_KEYS.PERMISSIONS)
+    if (!permissionsString) return []
+    try {
+      return JSON.parse(permissionsString)
+    } catch {
+      return []
+    }
+  }
+
   const user = ref<User | null>(getUserFromStorage())
+  const permissions = ref<string[]>(getPermissionsFromStorage())
 
   const isAuthenticated = computed(() => !!token.value)
+
+  const userInitials = computed(() => {
+    if (!user.value) return '?'
+    const { first_name, last_name, full_name } = user.value
+    if (first_name && last_name) {
+      return `${first_name[0]}${last_name[0]}`.toUpperCase()
+    }
+    if (full_name) {
+      const names = full_name.split(' ')
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[1][0]}`.toUpperCase()
+      }
+      return full_name.substring(0, 2).toUpperCase()
+    }
+    return '?'
+  })
+
+  const userRole = computed(() => user.value?.role?.name ?? 'Unknown')
+
+  const userName = computed(() => user.value?.full_name ?? 'User')
+
+  function hasPermission(permission: string): boolean {
+    const [resource, action] = permission.split('.')
+    return (
+      permissions.value.includes(permission) ||
+      permissions.value.includes(`${resource}.*`)
+    )
+  }
+
+  function hasAnyPermission(permissionList: string[]): boolean {
+    if (permissionList.length === 0) return true
+    return permissionList.some((p) => hasPermission(p))
+  }
+
+  function hasAllPermissions(permissionList: string[]): boolean {
+    return permissionList.every((p) => hasPermission(p))
+  }
 
   async function login(email: string, password: string): Promise<void> {
     const apiUrl = import.meta.env.VITE_API_URL
@@ -50,14 +92,13 @@ export const useAuthStore = defineStore('auth', () => {
 
     const data: LoginResponse = await response.json()
 
-    // Store token
     token.value = data.data.token
+    user.value = data.data.user
+    permissions.value = data.data.user.role.permissions
 
-    // Persist to localStorage
-    localStorage.setItem('token', data.data.token)
-
-    // TODO: Fetch user data from a separate endpoint if needed
-    // For now, user will remain null until we have a user endpoint
+    localStorage.setItem(STORAGE_KEYS.TOKEN, data.data.token)
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.data.user))
+    localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(data.data.user.role.permissions))
   }
 
   async function logout(): Promise<void> {
@@ -77,11 +118,17 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.error('Logout API error:', error)
     } finally {
-      token.value = null
-      user.value = null
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      clearAuth()
     }
+  }
+
+  function clearAuth(): void {
+    token.value = null
+    user.value = null
+    permissions.value = []
+    localStorage.removeItem(STORAGE_KEYS.TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.USER)
+    localStorage.removeItem(STORAGE_KEYS.PERMISSIONS)
   }
 
   function getToken(): string | null {
@@ -91,9 +138,17 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     user,
+    permissions,
     isAuthenticated,
+    userInitials,
+    userRole,
+    userName,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
     login,
     logout,
+    clearAuth,
     getToken,
   }
 })
