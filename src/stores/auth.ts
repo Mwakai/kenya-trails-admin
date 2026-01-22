@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { useRouter } from 'vue-router'
 import type { User, LoginResponse } from '@/types/auth'
 
 const STORAGE_KEYS = {
@@ -9,6 +10,7 @@ const STORAGE_KEYS = {
 } as const
 
 export const useAuthStore = defineStore('auth', () => {
+  const router = useRouter()
   const token = ref<string | null>(localStorage.getItem(STORAGE_KEYS.TOKEN))
 
   const getUserFromStorage = (): User | null => {
@@ -43,8 +45,8 @@ export const useAuthStore = defineStore('auth', () => {
       return `${first_name[0]}${last_name[0]}`.toUpperCase()
     }
     if (full_name) {
-      const names = full_name.split(' ')
-      if (names.length >= 2) {
+      const names = full_name.split(' ').filter(Boolean)
+      if (names.length >= 2 && names[0] && names[1]) {
         return `${names[0][0]}${names[1][0]}`.toUpperCase()
       }
       return full_name.substring(0, 2).toUpperCase()
@@ -56,8 +58,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const userName = computed(() => user.value?.full_name ?? 'User')
 
+  const isSuperAdmin = computed(() => user.value?.role?.slug === 'super_admin')
+
   function hasPermission(permission: string): boolean {
-    const [resource, action] = permission.split('.')
+    if (isSuperAdmin.value) return true
+    const [resource] = permission.split('.')
     return (
       permissions.value.includes(permission) ||
       permissions.value.includes(`${resource}.*`)
@@ -119,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Logout API error:', error)
     } finally {
       clearAuth()
+      router.push({ name: 'login' })
     }
   }
 
