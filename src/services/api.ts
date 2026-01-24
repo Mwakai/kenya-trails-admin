@@ -26,7 +26,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   // Add authorization header if required
   if (requiresAuth) {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     if (token) {
       requestHeaders['Authorization'] = `Bearer ${token}`
     }

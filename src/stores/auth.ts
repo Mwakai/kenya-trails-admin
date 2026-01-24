@@ -11,10 +11,10 @@ const STORAGE_KEYS = {
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
-  const token = ref<string | null>(localStorage.getItem(STORAGE_KEYS.TOKEN))
+  const token = ref<string | null>(sessionStorage.getItem(STORAGE_KEYS.TOKEN))
 
   const getUserFromStorage = (): User | null => {
-    const userString = localStorage.getItem(STORAGE_KEYS.USER)
+    const userString = sessionStorage.getItem(STORAGE_KEYS.USER)
     if (!userString || userString === 'undefined' || userString === 'null') return null
     try {
       return JSON.parse(userString)
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const getPermissionsFromStorage = (): string[] => {
-    const permissionsString = localStorage.getItem(STORAGE_KEYS.PERMISSIONS)
+    const permissionsString = sessionStorage.getItem(STORAGE_KEYS.PERMISSIONS)
     if (!permissionsString) return []
     try {
       return JSON.parse(permissionsString)
@@ -101,9 +101,9 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = data.data.user
     permissions.value = data.data.user.role.permissions
 
-    localStorage.setItem(STORAGE_KEYS.TOKEN, data.data.token)
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.data.user))
-    localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(data.data.user.role.permissions))
+    sessionStorage.setItem(STORAGE_KEYS.TOKEN, data.data.token)
+    sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.data.user))
+    sessionStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(data.data.user.role.permissions))
   }
 
   async function logout(): Promise<void> {
@@ -132,9 +132,9 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     user.value = null
     permissions.value = []
-    localStorage.removeItem(STORAGE_KEYS.TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.USER)
-    localStorage.removeItem(STORAGE_KEYS.PERMISSIONS)
+    sessionStorage.removeItem(STORAGE_KEYS.TOKEN)
+    sessionStorage.removeItem(STORAGE_KEYS.USER)
+    sessionStorage.removeItem(STORAGE_KEYS.PERMISSIONS)
   }
 
   function getToken(): string | null {

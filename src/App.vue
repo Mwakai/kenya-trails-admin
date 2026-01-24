@@ -1,4 +1,8 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useInactivityTimeout } from '@/composables/useInactivityTimeout'
+
+useInactivityTimeout()
+</script>
 
 <template>
   <router-view />
