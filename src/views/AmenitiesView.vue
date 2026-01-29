@@ -54,19 +54,19 @@ const sortedAmenities = computed(() => {
     const column = sortColumn.value as SortColumn
     if (!column) return 0
 
-    let aVal = a[column]
-    let bVal = b[column]
+    const aRaw = a[column]
+    const bRaw = b[column]
 
-    // Handle string comparison
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      aVal = aVal.toLowerCase()
-      bVal = bVal.toLowerCase()
-    }
+    let aVal: string | number
+    let bVal: string | number
 
     // Handle boolean comparison
-    if (typeof aVal === 'boolean') {
-      aVal = aVal ? 1 : 0
-      bVal = bVal ? 1 : 0
+    if (typeof aRaw === 'boolean') {
+      aVal = aRaw ? 1 : 0
+      bVal = (bRaw as boolean) ? 1 : 0
+    } else {
+      aVal = (aRaw as string).toLowerCase()
+      bVal = (bRaw as string).toLowerCase()
     }
 
     if (aVal < bVal) return sortDirection.value === 'asc' ? -1 : 1
