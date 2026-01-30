@@ -11,7 +11,7 @@ const authStore = useAuthStore()
 // Filter state
 const filters = ref<UserFilters>({
   page: 1,
-  per_page: 15,
+  per_page: 10,
   search: '',
   role_id: undefined,
   status: undefined,
@@ -119,7 +119,7 @@ function clearFilters() {
   searchInput.value = ''
   filters.value = {
     page: 1,
-    per_page: 15,
+    per_page: 10,
     search: '',
     role_id: undefined,
     status: undefined,
