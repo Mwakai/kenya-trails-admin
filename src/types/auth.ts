@@ -228,3 +228,62 @@ export interface UpdateAmenityPayload {
   description?: string
   is_active?: boolean
 }
+
+// Media Types
+export type MediaType = 'image' | 'video' | 'document'
+
+export interface MediaUploader {
+  id: number
+  first_name: string
+  last_name: string
+  full_name: string
+}
+
+export interface MediaVariants {
+  full: string
+  large: string
+  medium: string
+  small: string
+  thumbnail: string
+}
+
+export interface Media {
+  id: number
+  filename: string
+  original_filename: string
+  url: string
+  mime_type: string
+  size: number
+  type: MediaType
+  width: number | null
+  height: number | null
+  duration: number | null
+  alt_text: string | null
+  variants: MediaVariants | null
+  uploaded_by: MediaUploader
+  created_at: string
+  updated_at: string
+}
+
+export interface MediaListResponse {
+  data: {
+    media: Media[]
+  }
+  meta: PaginationMeta
+  message: string
+  status: number
+}
+
+export interface MediaResponse {
+  data: {
+    media: Media
+  }
+  message: string
+  status: number
+}
+
+export interface MediaDeleteResponse {
+  data: []
+  message: string
+  status: number
+}
