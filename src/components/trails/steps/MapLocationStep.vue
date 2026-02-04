@@ -7,14 +7,14 @@ import GpxFileManager from '@/components/trails/GpxFileManager.vue'
 
 const ctx = inject(trailFormKey)!
 const trailsStore = useTrailsStore()
-const { initMap, createMarker, createAutocomplete, loadError } = useGoogleMaps()
+const { initMap, createMarker, createAutocomplete, loadError, resolveLatLng } = useGoogleMaps()
 
 const errors = computed(() => ctx.stepErrors.value[2] || {})
 
 const mapContainer = ref<HTMLElement | null>(null)
-const searchInput = ref<HTMLInputElement | null>(null)
+const searchContainer = ref<HTMLElement | null>(null)
 let map: google.maps.Map | null = null
-let marker: google.maps.Marker | null = null
+let marker: google.maps.marker.AdvancedMarkerElement | null = null
 
 onMounted(async () => {
   if (trailsStore.counties.length === 0) {
@@ -35,34 +35,36 @@ onMounted(async () => {
 
     if (ctx.formData.latitude && ctx.formData.longitude) {
       marker = createMarker(map, { lat: ctx.formData.latitude, lng: ctx.formData.longitude })
-      marker.addListener('dragend', handleMarkerDrag)
+      marker.addEventListener('gmp-dragend', handleMarkerDrag)
     }
 
     map.addListener('click', handleMapClick)
 
     // Setup autocomplete
-    if (searchInput.value) {
-      const autocomplete = await createAutocomplete(searchInput.value)
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace()
-        if (place.geometry?.location) {
-          const lat = place.geometry.location.lat()
-          const lng = place.geometry.location.lng()
+    if (searchContainer.value) {
+      const autocomplete = await createAutocomplete(searchContainer.value)
+      autocomplete.addEventListener('gmp-placeselect', async (event) => {
+        const place = (event as unknown as { place: google.maps.places.Place }).place
+        await place.fetchFields({ fields: ['location', 'displayName', 'formattedAddress'] })
+
+        if (place.location) {
+          const lat = place.location.lat()
+          const lng = place.location.lng()
           ctx.formData.latitude = lat
           ctx.formData.longitude = lng
 
-          if (!ctx.formData.location_name && place.name) {
-            ctx.formData.location_name = place.name
+          if (!ctx.formData.location_name && place.displayName) {
+            ctx.formData.location_name = place.displayName
           }
 
           map?.setCenter({ lat, lng })
           map?.setZoom(14)
 
           if (marker) {
-            marker.setPosition({ lat, lng })
+            marker.position = { lat, lng }
           } else if (map) {
             marker = createMarker(map, { lat, lng })
-            marker.addListener('dragend', handleMarkerDrag)
+            marker.addEventListener('gmp-dragend', handleMarkerDrag)
           }
         }
       })
@@ -74,8 +76,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (marker) {
-    google.maps.event.clearInstanceListeners(marker)
-    marker.setMap(null)
+    marker.map = null
   }
   if (map) {
     google.maps.event.clearInstanceListeners(map)
@@ -92,20 +93,18 @@ function handleMapClick(e: google.maps.MapMouseEvent) {
   ctx.formData.longitude = lng
 
   if (marker) {
-    marker.setPosition(e.latLng)
+    marker.position = { lat, lng }
   } else {
     marker = createMarker(map, { lat, lng })
-    marker.addListener('dragend', handleMarkerDrag)
+    marker.addEventListener('gmp-dragend', handleMarkerDrag)
   }
 }
 
 function handleMarkerDrag() {
-  if (!marker) return
-  const pos = marker.getPosition()
-  if (pos) {
-    ctx.formData.latitude = pos.lat()
-    ctx.formData.longitude = pos.lng()
-  }
+  if (!marker?.position) return
+  const { lat, lng } = resolveLatLng(marker.position)
+  ctx.formData.latitude = lat
+  ctx.formData.longitude = lng
 }
 
 function handleCountyChange(event: Event) {
@@ -121,12 +120,7 @@ function handleCountyChange(event: Event) {
 
     <div class="form-group">
       <label class="field-label">Search Location</label>
-      <input
-        ref="searchInput"
-        type="text"
-        class="form-input"
-        placeholder="Search for a place in Kenya..."
-      />
+      <div ref="searchContainer" class="autocomplete-container" />
     </div>
 
     <div class="form-group">
@@ -250,6 +244,14 @@ function handleCountyChange(event: Event) {
 .error-msg {
   font-size: var(--font-size-xs);
   color: var(--color-error);
+}
+
+.autocomplete-container {
+  width: 100%;
+}
+
+.autocomplete-container :deep(gmp-place-autocomplete) {
+  width: 100%;
 }
 
 .main-map {

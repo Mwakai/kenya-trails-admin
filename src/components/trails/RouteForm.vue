@@ -20,11 +20,11 @@ const emit = defineEmits<{
   'update:imageIds': [val: number[]]
 }>()
 
-const { initMap, createMarker } = useGoogleMaps()
+const { initMap, createMarker, resolveLatLng } = useGoogleMaps()
 
 const mapContainer = ref<HTMLElement | null>(null)
 let map: google.maps.Map | null = null
-let marker: google.maps.Marker | null = null
+let marker: google.maps.marker.AdvancedMarkerElement | null = null
 
 onMounted(async () => {
   if (!mapContainer.value) return
@@ -43,7 +43,7 @@ onMounted(async () => {
 
     if (props.latitude && props.longitude) {
       marker = createMarker(map, { lat: props.latitude, lng: props.longitude })
-      marker.addListener('dragend', handleMarkerDrag)
+      marker.addEventListener('gmp-dragend', handleMarkerDrag)
     }
 
     map.addListener('click', handleMapClick)
@@ -54,8 +54,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (marker) {
-    google.maps.event.clearInstanceListeners(marker)
-    marker.setMap(null)
+    marker.map = null
   }
   if (map) {
     google.maps.event.clearInstanceListeners(map)
@@ -69,10 +68,10 @@ function handleMapClick(e: google.maps.MapMouseEvent) {
   const lng = e.latLng.lng()
 
   if (marker) {
-    marker.setPosition(e.latLng)
+    marker.position = { lat, lng }
   } else {
     marker = createMarker(map, { lat, lng })
-    marker.addListener('dragend', handleMarkerDrag)
+    marker.addEventListener('gmp-dragend', handleMarkerDrag)
   }
 
   emit('update:latitude', lat)
@@ -80,12 +79,10 @@ function handleMapClick(e: google.maps.MapMouseEvent) {
 }
 
 function handleMarkerDrag() {
-  if (!marker) return
-  const pos = marker.getPosition()
-  if (pos) {
-    emit('update:latitude', pos.lat())
-    emit('update:longitude', pos.lng())
-  }
+  if (!marker?.position) return
+  const { lat, lng } = resolveLatLng(marker.position)
+  emit('update:latitude', lat)
+  emit('update:longitude', lng)
 }
 
 watch(
@@ -94,10 +91,10 @@ watch(
     if (map && lat && lng) {
       const pos = { lat: lat as number, lng: lng as number }
       if (marker) {
-        marker.setPosition(pos)
+        marker.position = pos
       } else {
         marker = createMarker(map, pos)
-        marker.addListener('dragend', handleMarkerDrag)
+        marker.addEventListener('gmp-dragend', handleMarkerDrag)
       }
     }
   },
