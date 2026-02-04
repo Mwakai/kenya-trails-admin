@@ -16,12 +16,19 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@tiptap/extension-character-count": "^3.19.0",
+    "@tiptap/extension-placeholder": "^3.19.0",
+    "@tiptap/starter-kit": "^3.19.0",
+    "@tiptap/vue-3": "^3.19.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.22",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "vuedraggable": "^4.1.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
+    "@types/google.maps": "^3.58.1",
     "@types/node": "^22.18.11",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^10.2.0",

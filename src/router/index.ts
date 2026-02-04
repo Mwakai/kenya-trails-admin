@@ -42,9 +42,27 @@ const router = createRouter({
         },
         {
           path: 'trails',
-          name: 'trails',
-          component: () => import('@/views/TrailsView.vue'),
-          meta: { title: 'Trails', permissions: ['trails.view'] },
+          meta: { permissions: ['trails.view'] },
+          children: [
+            {
+              path: '',
+              name: 'trails',
+              component: () => import('@/views/trails/TrailListPage.vue'),
+              meta: { title: 'Trails' },
+            },
+            {
+              path: 'create',
+              name: 'trails-create',
+              component: () => import('@/views/trails/TrailFormPage.vue'),
+              meta: { title: 'Create Trail', permissions: ['trails.create'] },
+            },
+            {
+              path: ':id/edit',
+              name: 'trails-edit',
+              component: () => import('@/views/trails/TrailFormPage.vue'),
+              meta: { title: 'Edit Trail', permissions: ['trails.update'] },
+            },
+          ],
         },
         {
           path: 'amenities',
