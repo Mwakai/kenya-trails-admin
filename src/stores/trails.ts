@@ -92,7 +92,7 @@ export const useTrailsStore = defineStore('trails', () => {
   }
 
   async function publishTrail(id: number): Promise<Trail> {
-    const response = await api.patch<TrailResponse>(`/admin/trails/${id}/publish`, {}, {
+    const response = await api.patch<TrailResponse>(`/admin/trails/${id}`, { status: 'published' }, {
       requiresAuth: true,
     })
     const index = trails.value.findIndex((t) => t.id === id)
@@ -103,7 +103,7 @@ export const useTrailsStore = defineStore('trails', () => {
   }
 
   async function unpublishTrail(id: number): Promise<Trail> {
-    const response = await api.patch<TrailResponse>(`/admin/trails/${id}/unpublish`, {}, {
+    const response = await api.patch<TrailResponse>(`/admin/trails/${id}`, { status: 'draft' }, {
       requiresAuth: true,
     })
     const index = trails.value.findIndex((t) => t.id === id)
@@ -114,7 +114,7 @@ export const useTrailsStore = defineStore('trails', () => {
   }
 
   async function archiveTrail(id: number): Promise<Trail> {
-    const response = await api.patch<TrailResponse>(`/admin/trails/${id}/archive`, {}, {
+    const response = await api.patch<TrailResponse>(`/admin/trails/${id}`, { status: 'archived' }, {
       requiresAuth: true,
     })
     const index = trails.value.findIndex((t) => t.id === id)
@@ -125,7 +125,7 @@ export const useTrailsStore = defineStore('trails', () => {
   }
 
   async function restoreTrail(id: number): Promise<Trail> {
-    const response = await api.patch<TrailResponse>(`/admin/trails/${id}/restore`, {}, {
+    const response = await api.post<TrailResponse>(`/admin/trails/${id}/restore`, {}, {
       requiresAuth: true,
     })
     return response.data.trail

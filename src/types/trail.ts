@@ -135,7 +135,7 @@ export interface CreateTrailPayload {
   longitude?: number
   location_name?: string
   county_id?: number
-  county_slug?: string
+  county?: string
   video_url?: string
   featured_image_id?: number
   amenity_ids?: number[]

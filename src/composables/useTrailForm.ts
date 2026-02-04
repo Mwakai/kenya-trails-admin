@@ -168,7 +168,7 @@ function buildPayload(formData: TrailFormData): CreateTrailPayload {
     longitude: formData.longitude ?? undefined,
     location_name: formData.location_name || undefined,
     county_id: formData.county_id ?? undefined,
-    county_slug: formData.county_slug || undefined,
+    county: formData.county_slug || undefined,
     video_url: formData.video_url || undefined,
     featured_image_id: formData.featured_image_id ?? undefined,
     amenity_ids: formData.amenity_ids.length > 0 ? formData.amenity_ids : undefined,
