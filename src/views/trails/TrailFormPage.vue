@@ -48,6 +48,11 @@ function handleSaved(id: number) {
     // First save in create mode - URL already updated by watcher
     return
   }
+  // If trail was just published, go back to the list
+  if (ctx.formData.publish_status === 'published') {
+    router.push({ name: 'trails' })
+    return
+  }
   // In edit mode, just stay on the page (data is saved)
   void id
 }

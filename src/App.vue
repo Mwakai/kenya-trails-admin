@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useInactivityTimeout } from '@/composables/useInactivityTimeout'
+import AppToast from '@/components/AppToast.vue'
 
 useInactivityTimeout()
 </script>
 
 <template>
   <router-view />
+  <AppToast />
 </template>
 
 <style>
@@ -34,6 +36,9 @@ useInactivityTimeout()
   --color-primary-alpha: rgba(229, 90, 37, 0.1);
 
   /* Semantic Colors */
+  --color-success: #15803d;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #86efac;
   --color-error: #c53030;
   --color-error-bg: #fff5f5;
   --color-error-border: #fc8181;

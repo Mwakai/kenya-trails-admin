@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTrailsStore } from '@/stores/trails'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/services/api'
 import type { Trail, TrailFilters, TrailStatus, TrailDifficulty } from '@/types/trail'
 import TrailStatusBadge from '@/components/trails/TrailStatusBadge.vue'
@@ -12,6 +13,7 @@ import TrailCard from '@/components/trails/TrailCard.vue'
 const router = useRouter()
 const trailsStore = useTrailsStore()
 const authStore = useAuthStore()
+const toast = useToast()
 
 // Permissions
 const canCreate = computed(() => authStore.hasPermission('trails.create'))
@@ -170,11 +172,12 @@ async function handleDelete() {
     await trailsStore.deleteTrail(trailToDelete.value.id)
     await loadTrails()
     closeDeleteModal()
+    toast.success('Trail deleted')
   } catch (err) {
     if (err instanceof ApiError) {
-      alert(err.message)
+      toast.error(err.message)
     } else {
-      alert('Failed to delete trail')
+      toast.error('Failed to delete trail')
     }
   } finally {
     isDeleting.value = false
@@ -186,8 +189,9 @@ async function handlePublish(trail: Trail) {
   try {
     await trailsStore.publishTrail(trail.id)
     await loadTrails()
+    toast.success('Trail published successfully')
   } catch (err) {
-    if (err instanceof ApiError) alert(err.message)
+    if (err instanceof ApiError) toast.error(err.message)
   }
 }
 
@@ -196,8 +200,9 @@ async function handleUnpublish(trail: Trail) {
   try {
     await trailsStore.unpublishTrail(trail.id)
     await loadTrails()
+    toast.success('Trail unpublished')
   } catch (err) {
-    if (err instanceof ApiError) alert(err.message)
+    if (err instanceof ApiError) toast.error(err.message)
   }
 }
 

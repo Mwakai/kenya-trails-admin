@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { api, ApiError } from '@/services/api'
+import { api, ApiError, sanitizeErrorMessage } from '@/services/api'
 import type {
   Media,
   MediaType,
@@ -71,13 +71,13 @@ export const useMediaStore = defineStore('media', () => {
           if (meta.value) meta.value.total += 1
           resolve(response.data.media)
         } else {
-          const errorData = JSON.parse(xhr.responseText)
-          reject(new ApiError(errorData.message || 'Upload failed', xhr.status, errorData))
+          const errorData = (() => { try { return JSON.parse(xhr.responseText) } catch { return null } })()
+          reject(new ApiError(sanitizeErrorMessage(errorData?.message, xhr.status), xhr.status, errorData))
         }
       })
 
       xhr.addEventListener('error', () => {
-        reject(new ApiError('Upload failed', 0))
+        reject(new ApiError('Unable to connect to the server. Please check your connection and try again.', 0))
       })
 
       xhr.addEventListener('abort', () => {

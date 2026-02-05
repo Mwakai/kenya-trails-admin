@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { inject, ref, defineAsyncComponent } from 'vue'
 import { trailFormKey } from '@/composables/useTrailForm'
+import { useToast } from '@/composables/useToast'
 import StepperProgress from '@/components/stepper/StepperProgress.vue'
 import StepperNav from '@/components/stepper/StepperNav.vue'
 
@@ -21,6 +22,7 @@ const stepComponents = [
 ]
 
 const ctx = inject(trailFormKey)!
+const toast = useToast()
 
 const emit = defineEmits<{
   cancel: []
@@ -55,6 +57,7 @@ function cancelLeave() {
 async function handleSaveDraft() {
   const trail = await ctx.save(false)
   if (trail) {
+    toast.success('Draft saved successfully')
     emit('saved', trail.id)
   }
 }
@@ -62,6 +65,7 @@ async function handleSaveDraft() {
 async function handlePublish() {
   const trail = await ctx.save(true)
   if (trail) {
+    toast.success('Trail published successfully')
     emit('saved', trail.id)
   }
 }

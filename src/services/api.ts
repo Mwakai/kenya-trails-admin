@@ -1,5 +1,42 @@
 const API_URL = import.meta.env.VITE_API_URL
 
+const SERVER_ERROR_FALLBACK = 'Something went wrong. Please try again later.'
+const NETWORK_ERROR_FALLBACK = 'Unable to connect to the server. Please check your connection and try again.'
+
+const SENSITIVE_PATTERNS = [
+  /SQLSTATE/i,
+  /select\s.*\sfrom\s/i,
+  /insert\s+into/i,
+  /update\s.*\sset/i,
+  /delete\s+from/i,
+  /Connection:\s*\w+,\s*Host:/i,
+  /target machine actively refused/i,
+  /stack\s*trace/i,
+  /at\s+\S+\s+\(\S+:\d+:\d+\)/,
+  /vendor\//i,
+  /\.php/i,
+  /Exception\s+in/i,
+  /PDOException/i,
+  /QueryException/i,
+]
+
+/**
+ * Sanitize error messages so raw server/database errors never reach the UI.
+ * - 5xx or network errors always get a generic message.
+ * - 4xx messages are passed through only if they don't contain sensitive info.
+ */
+export function sanitizeErrorMessage(message: string | undefined, status: number): string {
+  if (status === 0 || !status) return NETWORK_ERROR_FALLBACK
+  if (status >= 500) return SERVER_ERROR_FALLBACK
+  if (!message) return SERVER_ERROR_FALLBACK
+
+  for (const pattern of SENSITIVE_PATTERNS) {
+    if (pattern.test(message)) return SERVER_ERROR_FALLBACK
+  }
+
+  return message
+}
+
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean
 }
@@ -32,15 +69,20 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...restOptions,
-    headers: requestHeaders,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...restOptions,
+      headers: requestHeaders,
+    })
+  } catch {
+    throw new ApiError(NETWORK_ERROR_FALLBACK, 0)
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null)
     throw new ApiError(
-      errorData?.message || `Request failed with status ${response.status}`,
+      sanitizeErrorMessage(errorData?.message, response.status),
       response.status,
       errorData,
     )

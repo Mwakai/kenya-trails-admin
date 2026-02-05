@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useRouter } from 'vue-router'
 import type { User, LoginResponse } from '@/types/auth'
+import { sanitizeErrorMessage } from '@/services/api'
 
 const STORAGE_KEYS = {
   TOKEN: 'token',
@@ -81,18 +82,23 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string): Promise<void> {
     const apiUrl = import.meta.env.VITE_API_URL
 
-    const response = await fetch(`${apiUrl}/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    })
+    let response: Response
+    try {
+      response = await fetch(`${apiUrl}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+    } catch {
+      throw new Error('Unable to connect to the server. Please check your connection and try again.')
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Login failed' }))
-      throw new Error(error.message || 'Login failed')
+      throw new Error(sanitizeErrorMessage(error.message, response.status) || 'Login failed')
     }
 
     const data: LoginResponse = await response.json()
