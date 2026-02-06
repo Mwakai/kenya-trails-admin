@@ -48,7 +48,9 @@ export const useUsersStore = defineStore('users', () => {
         requiresAuth: true,
       })
       users.value = response.data.users
-      meta.value = response.meta
+      if (response.meta) {
+        meta.value = response.meta
+      }
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'Failed to load users'
       throw err
@@ -95,7 +97,7 @@ export const useUsersStore = defineStore('users', () => {
       const response = await api.get<RolesResponse>('/admin/roles', {
         requiresAuth: true,
       })
-      roles.value = response.data.roles
+      roles.value = response.data?.roles ?? []
     } catch (err) {
       console.error('Failed to load roles:', err)
     }
@@ -106,7 +108,7 @@ export const useUsersStore = defineStore('users', () => {
       const response = await api.get<CompaniesResponse>('/admin/companies', {
         requiresAuth: true,
       })
-      companies.value = response.data.companies
+      companies.value = response.data?.companies ?? []
     } catch (err) {
       console.error('Failed to load companies:', err)
     }
