@@ -28,8 +28,6 @@ const isDeleting = ref(false)
 const formData = ref({
   name: '',
   slug: '',
-  icon: '',
-  description: '',
   is_active: true,
 })
 const formError = ref('')
@@ -110,8 +108,6 @@ function openEditModal(amenity: Amenity) {
   formData.value = {
     name: amenity.name,
     slug: amenity.slug,
-    icon: amenity.icon ?? '',
-    description: amenity.description ?? '',
     is_active: amenity.is_active,
   }
   formError.value = ''
@@ -139,8 +135,6 @@ function resetForm() {
   formData.value = {
     name: '',
     slug: '',
-    icon: '',
-    description: '',
     is_active: true,
   }
   formError.value = ''
@@ -161,8 +155,6 @@ async function handleSubmit() {
       const payload: CreateAmenityPayload = {
         name: formData.value.name,
         slug: formData.value.slug || undefined,
-        icon: formData.value.icon || undefined,
-        description: formData.value.description || undefined,
         is_active: formData.value.is_active,
       }
       await amenitiesStore.createAmenity(payload)
@@ -170,8 +162,6 @@ async function handleSubmit() {
       const payload: UpdateAmenityPayload = {
         name: formData.value.name,
         slug: formData.value.slug || undefined,
-        icon: formData.value.icon || undefined,
-        description: formData.value.description || undefined,
         is_active: formData.value.is_active,
       }
       await amenitiesStore.updateAmenity(editingAmenity.value.id, payload)
@@ -277,8 +267,6 @@ onMounted(async () => {
                 </svg>
               </span>
             </th>
-            <th>Icon</th>
-            <th>Description</th>
             <th class="sortable" @click="toggleSort('is_active')">
               <span>Status</span>
               <span class="sort-icon" :class="{ active: sortColumn === 'is_active' }">
@@ -299,8 +287,6 @@ onMounted(async () => {
               <span>{{ amenity.name }}</span>
             </td>
             <td class="amenity-slug">{{ amenity.slug }}</td>
-            <td>{{ amenity.icon || '-' }}</td>
-            <td class="amenity-description">{{ amenity.description || '-' }}</td>
             <td>
               <span class="status-badge" :class="getStatusClass(amenity.is_active)">
                 {{ amenity.is_active ? 'Active' : 'Inactive' }}
@@ -390,36 +376,6 @@ onMounted(async () => {
               />
               <span v-if="getFieldError('slug')" class="field-error">
                 {{ getFieldError('slug') }}
-              </span>
-            </div>
-
-            <div class="form-group">
-              <label for="icon">Icon</label>
-              <input
-                id="icon"
-                v-model="formData.icon"
-                type="text"
-                :class="{ 'input-error': getFieldError('icon') }"
-                :disabled="isSubmitting"
-                placeholder="e.g., water-icon, camping-icon"
-              />
-              <span v-if="getFieldError('icon')" class="field-error">
-                {{ getFieldError('icon') }}
-              </span>
-            </div>
-
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea
-                id="description"
-                v-model="formData.description"
-                rows="3"
-                :class="{ 'input-error': getFieldError('description') }"
-                :disabled="isSubmitting"
-                placeholder="Brief description of this amenity"
-              ></textarea>
-              <span v-if="getFieldError('description')" class="field-error">
-                {{ getFieldError('description') }}
               </span>
             </div>
 
@@ -715,13 +671,6 @@ onMounted(async () => {
   font-family: monospace;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-}
-
-.amenity-description {
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .status-badge {

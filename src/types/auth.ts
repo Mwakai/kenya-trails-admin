@@ -184,8 +184,6 @@ export interface Amenity {
   id: number
   name: string
   slug: string
-  icon: string | null
-  description: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -216,16 +214,12 @@ export interface AmenityDeleteResponse {
 export interface CreateAmenityPayload {
   name: string
   slug?: string
-  icon?: string
-  description?: string
   is_active?: boolean
 }
 
 export interface UpdateAmenityPayload {
   name?: string
   slug?: string
-  icon?: string
-  description?: string
   is_active?: boolean
 }
 
