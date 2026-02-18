@@ -8,14 +8,16 @@ import type {
   Trail,
   CreateTrailPayload,
   UpdateTrailPayload,
+  ItineraryDayPayload,
 } from '@/types/trail'
 
 export const STEP_LABELS = [
   'Basic Info',
   'Trail Stats',
-  'Map & Location',
+  'Location & Region',
   'Routes',
   'Media',
+  'Itinerary',
   'Review',
 ] as const
 
@@ -26,15 +28,24 @@ function createEmptyFormData(): TrailFormData {
     description: '',
     difficulty: '',
     distance_km: null,
-    duration_hours: null,
+    duration_type: 'hours',
+    duration_min: null,
+    duration_max: null,
+    is_multi_day: false,
     elevation_gain_m: null,
     max_altitude_m: null,
     amenity_ids: [],
+    is_year_round: true,
+    best_months: [],
+    season_notes: '',
+    requires_guide: false,
+    requires_permit: false,
+    permit_info: '',
+    accommodation_types: [],
     latitude: null,
     longitude: null,
     location_name: '',
-    county_id: null,
-    county_slug: '',
+    region_id: null,
     gpx_file_ids: [],
     route_a: {
       name: '',
@@ -55,6 +66,7 @@ function createEmptyFormData(): TrailFormData {
     featured_image: null,
     gallery: [],
     video_url: '',
+    itinerary: [],
     publish_status: 'draft',
   }
 }
@@ -71,17 +83,25 @@ function formDataForStep(step: number, formData: TrailFormData): Record<string, 
       return {
         difficulty: formData.difficulty || undefined,
         distance_km: formData.distance_km,
-        ...(formData.duration_hours != null && { duration_hours: formData.duration_hours }),
+        duration_type: formData.duration_type,
+        ...(formData.duration_min != null && { duration_min: formData.duration_min }),
+        ...(formData.duration_max != null && { duration_max: formData.duration_max }),
         ...(formData.elevation_gain_m != null && { elevation_gain_m: formData.elevation_gain_m }),
         ...(formData.max_altitude_m != null && { max_altitude_m: formData.max_altitude_m }),
+        is_year_round: formData.is_year_round,
+        best_months: formData.best_months,
+        season_notes: formData.season_notes,
+        requires_guide: formData.requires_guide,
+        requires_permit: formData.requires_permit,
+        permit_info: formData.permit_info,
+        accommodation_types: formData.accommodation_types,
       }
     case 2:
       return {
         latitude: formData.latitude,
         longitude: formData.longitude,
         location_name: formData.location_name,
-        ...(formData.county_id != null && { county_id: formData.county_id }),
-        county_slug: formData.county_slug,
+        region_id: formData.region_id,
       }
     case 3:
       return {
@@ -92,6 +112,10 @@ function formDataForStep(step: number, formData: TrailFormData): Record<string, 
     case 4:
       return {
         featured_image_id: formData.featured_image_id,
+      }
+    case 5:
+      return {
+        itinerary: formData.itinerary,
       }
     default:
       return {}
@@ -110,15 +134,24 @@ function populateFormFromTrail(formData: TrailFormData, trail: Trail): void {
   formData.description = trail.description || ''
   formData.difficulty = trail.difficulty || ''
   formData.distance_km = toNumber(trail.distance_km)
-  formData.duration_hours = toNumber(trail.duration_hours)
+  formData.duration_type = trail.duration_type || 'hours'
+  formData.duration_min = toNumber(trail.duration_min)
+  formData.duration_max = toNumber(trail.duration_max)
+  formData.is_multi_day = trail.is_multi_day ?? false
   formData.elevation_gain_m = toNumber(trail.elevation_gain_m)
   formData.max_altitude_m = toNumber(trail.max_altitude_m)
   formData.amenity_ids = (trail.amenities || []).map((a) => a.id)
+  formData.is_year_round = trail.is_year_round ?? true
+  formData.best_months = trail.best_months || []
+  formData.season_notes = trail.season_notes || ''
+  formData.requires_guide = trail.requires_guide ?? false
+  formData.requires_permit = trail.requires_permit ?? false
+  formData.permit_info = trail.permit_info || ''
+  formData.accommodation_types = trail.accommodation_types || []
   formData.latitude = toNumber(trail.latitude)
   formData.longitude = toNumber(trail.longitude)
   formData.location_name = trail.location_name || ''
-  formData.county_id = trail.county_id
-  formData.county_slug = trail.county?.slug || ''
+  formData.region_id = trail.region_id
   formData.gpx_file_ids = (trail.gpx_files || []).map((g) => g.media_id)
   formData.featured_image_id = trail.featured_image_id
   formData.featured_image = trail.featured_image || null
@@ -129,6 +162,16 @@ function populateFormFromTrail(formData: TrailFormData, trail: Trail): void {
     sort_order: g.sort_order,
   }))
   formData.video_url = trail.video_url || ''
+  formData.itinerary = (trail.itinerary || []).map((d) => ({
+    day_number: d.day_number,
+    title: d.title,
+    description: d.description || '',
+    distance_km: toNumber(d.distance_km),
+    elevation_gain_m: toNumber(d.elevation_gain_m),
+    start_point: d.start_point || '',
+    end_point: d.end_point || '',
+    accommodation: d.accommodation || '',
+  }))
   formData.publish_status = trail.status
 
   if (trail.route_a) {
@@ -161,25 +204,51 @@ function buildPayload(formData: TrailFormData): CreateTrailPayload {
     status: formData.publish_status,
     difficulty: formData.difficulty || undefined,
     distance_km: formData.distance_km ?? undefined,
-    duration_hours: formData.duration_hours ?? undefined,
+    duration_type: formData.duration_type || undefined,
+    duration_min: formData.duration_min ?? undefined,
+    duration_max: formData.duration_max ?? undefined,
+    is_multi_day: formData.is_multi_day,
     elevation_gain_m: formData.elevation_gain_m ?? undefined,
     max_altitude_m: formData.max_altitude_m ?? undefined,
     latitude: formData.latitude ?? undefined,
     longitude: formData.longitude ?? undefined,
     location_name: formData.location_name || undefined,
-    county_id: formData.county_id ?? undefined,
-    county: formData.county_slug || undefined,
+    region_id: formData.region_id ?? undefined,
+    is_year_round: formData.is_year_round,
+    best_months: formData.best_months.length > 0 ? formData.best_months : undefined,
+    season_notes: formData.season_notes || undefined,
+    requires_guide: formData.requires_guide,
+    requires_permit: formData.requires_permit,
+    permit_info: formData.permit_info || undefined,
+    accommodation_types:
+      formData.accommodation_types.length > 0 ? formData.accommodation_types : undefined,
     video_url: formData.video_url || undefined,
     featured_image_id: formData.featured_image_id ?? undefined,
     amenity_ids: formData.amenity_ids.length > 0 ? formData.amenity_ids : undefined,
     gpx_file_ids: formData.gpx_file_ids.length > 0 ? formData.gpx_file_ids : undefined,
-    gallery: formData.gallery.length > 0
-      ? formData.gallery.map((g, index) => ({
-          media_id: g.media_id,
-          caption: g.caption || undefined,
-          sort_order: index,
-        }))
-      : undefined,
+    gallery:
+      formData.gallery.length > 0
+        ? formData.gallery.map((g, index) => ({
+            media_id: g.media_id,
+            caption: g.caption || undefined,
+            sort_order: index,
+          }))
+        : undefined,
+  }
+
+  if (formData.itinerary.length > 0) {
+    payload.itinerary = formData.itinerary.map(
+      (d): ItineraryDayPayload => ({
+        day_number: d.day_number,
+        title: d.title,
+        description: d.description || undefined,
+        distance_km: d.distance_km ?? undefined,
+        elevation_gain_m: d.elevation_gain_m ?? undefined,
+        start_point: d.start_point || undefined,
+        end_point: d.end_point || undefined,
+        accommodation: d.accommodation || undefined,
+      }),
+    )
   }
 
   if (formData.route_a.name) {
@@ -211,6 +280,7 @@ export interface CompletionStatus {
   location: boolean
   routes: boolean
   media: boolean
+  itinerary: boolean
 }
 
 export interface TrailFormContext {
@@ -260,14 +330,20 @@ export function useTrailForm(trailId?: number) {
   const completionStatus = computed(() => ({
     basicInfo: !!(formData.name && formData.description),
     stats: !!(formData.difficulty && formData.distance_km),
-    location: !!(formData.latitude && formData.longitude && (formData.county_id || formData.county_slug) && formData.location_name),
+    location: !!(
+      formData.latitude &&
+      formData.longitude &&
+      formData.region_id &&
+      formData.location_name
+    ),
     routes: !!formData.route_a.name,
     media: !!formData.featured_image_id,
+    itinerary: !formData.is_multi_day || formData.itinerary.length > 0,
   }))
 
   const isReadyToPublish = computed(() => {
     const s = completionStatus.value
-    return s.basicInfo && s.stats && s.location && s.routes && s.media
+    return s.basicInfo && s.stats && s.location && s.routes && s.media && s.itinerary
   })
 
   async function loadTrail(id: number): Promise<void> {
@@ -293,20 +369,26 @@ export function useTrailForm(trailId?: number) {
   function nextStep(): boolean {
     const errors = validateCurrentStep()
     if (Object.keys(errors).length > 0) return false
-    if (currentStep.value < 5) {
-      currentStep.value++
+    if (currentStep.value < 6) {
+      let next = currentStep.value + 1
+      // Skip itinerary step (5) when not multi-day
+      if (next === 5 && !formData.is_multi_day) next = 6
+      currentStep.value = next
     }
     return true
   }
 
   function prevStep(): void {
     if (currentStep.value > 0) {
-      currentStep.value--
+      let prev = currentStep.value - 1
+      // Skip itinerary step (5) when not multi-day
+      if (prev === 5 && !formData.is_multi_day) prev = 4
+      currentStep.value = prev
     }
   }
 
   function goToStep(step: number): void {
-    if (step >= 0 && step <= 5) {
+    if (step >= 0 && step <= 6) {
       currentStep.value = step
     }
   }
@@ -328,6 +410,7 @@ export function useTrailForm(trailId?: number) {
     isSaving.value = true
     try {
       const payload = buildPayload(formData)
+
       let trail: Trail
 
       if (isEditMode.value && existingTrailId.value) {
@@ -339,6 +422,12 @@ export function useTrailForm(trailId?: number) {
 
       takeSnapshot()
       return trail
+    } catch (err: unknown) {
+      const apiErr = err as { data?: unknown }
+      if (apiErr.data) {
+        console.error('[TrailForm] API error data:', apiErr.data)
+      }
+      throw err
     } finally {
       isSaving.value = false
     }

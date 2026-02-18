@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import { usePrefetch } from '@/composables/usePrefetch'
 
 const route = useRoute()
 const sidebarCollapsed = ref(false)
+const { prefetchAll } = usePrefetch()
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value
@@ -14,6 +16,10 @@ const toggleSidebar = () => {
 const getPageTitle = (): string => {
   return (route.meta.title as string) || 'Dashboard'
 }
+
+onMounted(() => {
+  prefetchAll()
+})
 </script>
 
 <template>

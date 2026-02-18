@@ -37,6 +37,8 @@ export type Permission =
   | 'group_hikes.delete_own'
   | 'group_hikes.publish'
   | 'group_hikes.*'
+  | 'activity_logs.view'
+  | 'activity_logs.*'
 
 export interface UserRole {
   id: number

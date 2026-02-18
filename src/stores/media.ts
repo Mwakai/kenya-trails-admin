@@ -11,6 +11,7 @@ import type {
 } from '@/types/auth'
 
 const API_URL = import.meta.env.VITE_API_URL
+const STALE_AFTER_MS = 5 * 60 * 1000 // 5 minutes
 
 export const useMediaStore = defineStore('media', () => {
   const media = ref<Media[]>([])
@@ -18,8 +19,15 @@ export const useMediaStore = defineStore('media', () => {
   const error = ref<string | null>(null)
   const meta = ref<PaginationMeta | null>(null)
 
-  async function fetchMedia(page = 1, type?: MediaType): Promise<void> {
-    loading.value = true
+  // Cache tracking
+  const _initialized = ref(false)
+  const _lastFetchedAt = ref(0)
+
+  // In-flight deduplication
+  let _promise: Promise<void> | null = null
+
+  async function fetchMedia(page = 1, type?: MediaType, opts?: { silent?: boolean }): Promise<void> {
+    if (!opts?.silent) loading.value = true
     error.value = null
     try {
       let endpoint = `/admin/media?page=${page}`
@@ -33,12 +41,26 @@ export const useMediaStore = defineStore('media', () => {
         media.value = [...media.value, ...response.data.media]
       }
       meta.value = response.meta
+      _initialized.value = true
+      _lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'Failed to load media'
       throw err
     } finally {
-      loading.value = false
+      if (!opts?.silent) loading.value = false
     }
+  }
+
+  async function ensureMedia(): Promise<void> {
+    if (_initialized.value && media.value.length > 0) {
+      if (Date.now() - _lastFetchedAt.value > STALE_AFTER_MS) {
+        fetchMedia(1, undefined, { silent: true }).catch(() => {})
+      }
+      return
+    }
+    if (_promise) return _promise
+    _promise = fetchMedia(1).finally(() => { _promise = null })
+    return _promise
   }
 
   async function uploadFile(
@@ -113,15 +135,27 @@ export const useMediaStore = defineStore('media', () => {
     error.value = null
   }
 
+  function $reset(): void {
+    media.value = []
+    loading.value = false
+    error.value = null
+    meta.value = null
+    _initialized.value = false
+    _lastFetchedAt.value = 0
+    _promise = null
+  }
+
   return {
     media,
     loading,
     error,
     meta,
     fetchMedia,
+    ensureMedia,
     uploadFile,
     updateMedia,
     deleteMedia,
     clearError,
+    $reset,
   }
 })

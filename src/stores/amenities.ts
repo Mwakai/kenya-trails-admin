@@ -10,25 +10,48 @@ import type {
   UpdateAmenityPayload,
 } from '@/types/auth'
 
+const STALE_AFTER_MS = 5 * 60 * 1000 // 5 minutes
+
 export const useAmenitiesStore = defineStore('amenities', () => {
   const amenities = ref<Amenity[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchAmenities(): Promise<void> {
-    loading.value = true
+  // Cache tracking
+  const _initialized = ref(false)
+  const _lastFetchedAt = ref(0)
+
+  // In-flight deduplication
+  let _promise: Promise<void> | null = null
+
+  async function fetchAmenities(opts?: { silent?: boolean }): Promise<void> {
+    if (!opts?.silent) loading.value = true
     error.value = null
     try {
       const response = await api.get<AmenityListResponse>('/admin/amenities', {
         requiresAuth: true,
       })
       amenities.value = response.data.amenities
+      _initialized.value = true
+      _lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'Failed to load amenities'
       throw err
     } finally {
-      loading.value = false
+      if (!opts?.silent) loading.value = false
     }
+  }
+
+  async function ensureAmenities(): Promise<void> {
+    if (_initialized.value && amenities.value.length > 0) {
+      if (Date.now() - _lastFetchedAt.value > STALE_AFTER_MS) {
+        fetchAmenities({ silent: true }).catch(() => {})
+      }
+      return
+    }
+    if (_promise) return _promise
+    _promise = fetchAmenities().finally(() => { _promise = null })
+    return _promise
   }
 
   async function fetchAmenity(id: number): Promise<Amenity> {
@@ -68,15 +91,26 @@ export const useAmenitiesStore = defineStore('amenities', () => {
     error.value = null
   }
 
+  function $reset(): void {
+    amenities.value = []
+    loading.value = false
+    error.value = null
+    _initialized.value = false
+    _lastFetchedAt.value = 0
+    _promise = null
+  }
+
   return {
     amenities,
     loading,
     error,
     fetchAmenities,
+    ensureAmenities,
     fetchAmenity,
     createAmenity,
     updateAmenity,
     deleteAmenity,
     clearError,
+    $reset,
   }
 })

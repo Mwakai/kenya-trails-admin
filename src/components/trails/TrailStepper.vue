@@ -10,6 +10,7 @@ const TrailStatsStep = defineAsyncComponent(() => import('./steps/TrailStatsStep
 const MapLocationStep = defineAsyncComponent(() => import('./steps/MapLocationStep.vue'))
 const RoutesStep = defineAsyncComponent(() => import('./steps/RoutesStep.vue'))
 const MediaStep = defineAsyncComponent(() => import('./steps/MediaStep.vue'))
+const ItineraryStep = defineAsyncComponent(() => import('./steps/ItineraryStep.vue'))
 const ReviewStep = defineAsyncComponent(() => import('./steps/ReviewStep.vue'))
 
 const stepComponents = [
@@ -18,6 +19,7 @@ const stepComponents = [
   MapLocationStep,
   RoutesStep,
   MediaStep,
+  ItineraryStep,
   ReviewStep,
 ]
 

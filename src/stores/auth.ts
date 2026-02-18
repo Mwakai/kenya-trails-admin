@@ -3,6 +3,11 @@ import { defineStore } from 'pinia'
 import { useRouter } from 'vue-router'
 import type { User, LoginResponse } from '@/types/auth'
 import { sanitizeErrorMessage } from '@/services/api'
+import { useTrailsStore } from '@/stores/trails'
+import { useAmenitiesStore } from '@/stores/amenities'
+import { useUsersStore } from '@/stores/users'
+import { useMediaStore } from '@/stores/media'
+import { useActivityLogsStore } from '@/stores/activityLogs'
 
 const STORAGE_KEYS = {
   TOKEN: 'token',
@@ -141,6 +146,13 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.removeItem(STORAGE_KEYS.TOKEN)
     sessionStorage.removeItem(STORAGE_KEYS.USER)
     sessionStorage.removeItem(STORAGE_KEYS.PERMISSIONS)
+
+    // Reset all data stores to clear cached prefetch data
+    useTrailsStore().$reset()
+    useAmenitiesStore().$reset()
+    useUsersStore().$reset()
+    useMediaStore().$reset()
+    useActivityLogsStore().$reset()
   }
 
   function getToken(): string | null {

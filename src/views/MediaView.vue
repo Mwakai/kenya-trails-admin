@@ -46,6 +46,9 @@ const altTextInput = ref('')
 const isSavingAlt = ref(false)
 const altSaveError = ref('')
 
+// Selection state
+const selectedIds = ref<Set<number>>(new Set())
+
 // Delete confirmation
 const showDeleteModal = ref(false)
 const mediaToDelete = ref<Media | null>(null)
@@ -342,12 +345,25 @@ function closeDeleteModal() {
 }
 
 async function handleDelete() {
-  if (!mediaToDelete.value) return
   isDeleting.value = true
   try {
-    await mediaStore.deleteMedia(mediaToDelete.value.id)
-    if (selectedMedia.value?.id === mediaToDelete.value.id) {
-      closeDetail()
+    if (mediaToDelete.value) {
+      // Single delete
+      await mediaStore.deleteMedia(mediaToDelete.value.id)
+      if (selectedMedia.value?.id === mediaToDelete.value.id) {
+        closeDetail()
+      }
+      selectedIds.value.delete(mediaToDelete.value.id)
+    } else {
+      // Bulk delete
+      const ids = Array.from(selectedIds.value)
+      for (const id of ids) {
+        await mediaStore.deleteMedia(id)
+        if (selectedMedia.value?.id === id) {
+          closeDetail()
+        }
+      }
+      selectedIds.value = new Set()
     }
     closeDeleteModal()
   } catch (err) {
@@ -355,6 +371,39 @@ async function handleDelete() {
   } finally {
     isDeleting.value = false
   }
+}
+
+// Selection
+function toggleSelect(id: number) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  selectedIds.value = next
+}
+
+function toggleSelectAll() {
+  if (selectedIds.value.size === sortedMedia.value.length) {
+    selectedIds.value = new Set()
+  } else {
+    selectedIds.value = new Set(sortedMedia.value.map((m) => m.id))
+  }
+}
+
+function isSelected(id: number): boolean {
+  return selectedIds.value.has(id)
+}
+
+const isAllSelected = computed(
+  () => sortedMedia.value.length > 0 && selectedIds.value.size === sortedMedia.value.length,
+)
+
+function openBulkDeleteModal() {
+  if (selectedIds.value.size === 0) return
+  mediaToDelete.value = null
+  showDeleteModal.value = true
 }
 
 // Lightbox
@@ -376,7 +425,7 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
-  mediaStore.fetchMedia(1, activeFilter.value)
+  mediaStore.ensureMedia()
   document.addEventListener('keydown', onKeydown)
 })
 
@@ -539,6 +588,17 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Bulk Action Bar -->
+    <div v-if="selectedIds.size > 0 && canDelete" class="bulk-bar">
+      <span class="bulk-count">{{ selectedIds.size }} selected</span>
+      <button class="btn btn-danger btn-sm" @click="openBulkDeleteModal">
+        Delete Selected
+      </button>
+      <button class="btn btn-secondary btn-sm" @click="selectedIds = new Set()">
+        Clear Selection
+      </button>
+    </div>
+
     <!-- Loading State -->
     <div v-if="mediaStore.loading && mediaStore.media.length === 0" class="loading-state">
       <div v-if="viewMode === 'grid'" class="skeleton-grid">
@@ -629,41 +689,18 @@ onUnmounted(() => {
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </div>
-          <div class="card-overlay">
-            <button class="overlay-btn" title="View" @click.stop="openDetail(item)">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </button>
-            <button
-              v-if="canDelete"
-              class="overlay-btn overlay-btn-danger"
-              title="Delete"
-              @click.stop="openDeleteModal(item)"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <polyline points="3 6 5 6 21 6" />
-                <path
-                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                />
-              </svg>
-            </button>
-          </div>
+            <label
+            v-if="canDelete"
+            class="card-checkbox"
+            :class="{ visible: isSelected(item.id) }"
+            @click.stop
+          >
+            <input
+              type="checkbox"
+              :checked="isSelected(item.id)"
+              @change="toggleSelect(item.id)"
+            />
+          </label>
           <span class="card-type-badge">{{ item.type }}</span>
         </div>
         <div class="card-info">
@@ -683,6 +720,13 @@ onUnmounted(() => {
       <table class="media-table">
         <thead>
           <tr>
+            <th v-if="canDelete" style="width: 40px">
+              <input
+                type="checkbox"
+                :checked="isAllSelected"
+                @change="toggleSelectAll"
+              />
+            </th>
             <th style="width: 56px">Preview</th>
             <th class="sortable" @click="toggleSort('filename')">
               <span>Filename</span>
@@ -793,7 +837,6 @@ onUnmounted(() => {
                 </svg>
               </span>
             </th>
-            <th v-if="canUpdate || canDelete">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -803,6 +846,13 @@ onUnmounted(() => {
             class="clickable-row"
             @click="openDetail(item)"
           >
+            <td v-if="canDelete" @click.stop>
+              <input
+                type="checkbox"
+                :checked="isSelected(item.id)"
+                @change="toggleSelect(item.id)"
+              />
+            </td>
             <td>
               <img
                 v-if="item.type === 'image'"
@@ -843,46 +893,6 @@ onUnmounted(() => {
             <td>{{ formatSize(item.size) }}</td>
             <td>{{ item.uploaded_by.full_name }}</td>
             <td>{{ formatDate(item.created_at) }}</td>
-            <td v-if="canUpdate || canDelete" class="actions-cell" @click.stop>
-              <button
-                v-if="canUpdate"
-                class="btn-icon"
-                title="Edit"
-                @click="openDetail(item)"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-              <button
-                v-if="canDelete"
-                class="btn-icon btn-icon-danger"
-                title="Delete"
-                @click="openDeleteModal(item)"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <polyline points="3 6 5 6 21 6" />
-                  <path
-                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                  />
-                </svg>
-              </button>
-            </td>
           </tr>
         </tbody>
       </table>
@@ -1062,11 +1072,18 @@ onUnmounted(() => {
           <button class="btn-close" @click="closeDeleteModal">&times;</button>
         </div>
         <div class="modal-body">
-          <p>
-            Are you sure you want to delete
-            <strong>{{ mediaToDelete?.filename }}</strong
-            >?
-          </p>
+          <template v-if="mediaToDelete">
+            <p>
+              Are you sure you want to delete
+              <strong>{{ mediaToDelete.filename }}</strong>?
+            </p>
+          </template>
+          <template v-else>
+            <p>
+              Are you sure you want to delete
+              <strong>{{ selectedIds.size }} item{{ selectedIds.size > 1 ? 's' : '' }}</strong>?
+            </p>
+          </template>
           <p class="delete-note">This action can be undone by an administrator.</p>
         </div>
         <div class="modal-footer">
@@ -1551,39 +1568,49 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
 }
 
-.card-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+
+/* Bulk Action Bar */
+.bulk-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
 }
 
-.media-card:hover .card-overlay {
+.bulk-count {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Card Checkbox */
+.card-checkbox {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  cursor: pointer;
+}
+
+.card-checkbox.visible {
   opacity: 1;
 }
 
-.overlay-btn {
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
+.media-card:hover .card-checkbox {
+  opacity: 1;
+}
+
+.card-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
   cursor: pointer;
-  color: var(--color-text-primary);
-  transition: all var(--transition-fast);
-}
-
-.overlay-btn:hover {
-  background: white;
-}
-
-.overlay-btn-danger:hover {
-  background: var(--color-error-bg);
-  color: var(--color-error);
+  accent-color: var(--color-primary);
 }
 
 .card-type-badge {
@@ -1706,6 +1733,13 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
 }
 
+.media-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
 .filename-cell {
   font-weight: var(--font-weight-medium);
 }
@@ -1719,11 +1753,6 @@ onUnmounted(() => {
   background: var(--color-background-alt);
   color: var(--color-text-secondary);
   text-transform: capitalize;
-}
-
-.actions-cell {
-  display: flex;
-  gap: var(--space-1);
 }
 
 /* Pagination */

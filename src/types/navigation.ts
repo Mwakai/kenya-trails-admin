@@ -6,6 +6,7 @@ export type IconName =
   | 'map'
   | 'tag'
   | 'calendar'
+  | 'activity-log'
   | 'chevron-down'
   | 'logout'
   | 'menu'
@@ -60,5 +61,11 @@ export const navigationItems: NavigationItem[] = [
     path: '/group-hikes',
     icon: 'calendar',
     permissions: ['group_hikes.view_all', 'group_hikes.view_own'],
+  },
+  {
+    name: 'Activity Log',
+    path: '/activity-logs',
+    icon: 'activity-log',
+    permissions: ['activity_logs.view'],
   },
 ]

@@ -32,7 +32,7 @@ const emit = defineEmits<{
         {{ ctx.isSaving.value ? 'Saving...' : 'Save Draft' }}
       </button>
       <button
-        v-if="ctx.currentStep.value < 5"
+        v-if="ctx.currentStep.value < 6"
         class="btn btn-primary"
         @click="ctx.nextStep()"
       >

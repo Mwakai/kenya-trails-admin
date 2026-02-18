@@ -79,6 +79,12 @@ const router = createRouter({
             permissions: ['group_hikes.view_all', 'group_hikes.view_own'],
           },
         },
+        {
+          path: 'activity-logs',
+          name: 'activity-logs',
+          component: () => import('@/views/ActivityLogView.vue'),
+          meta: { title: 'Activity Log', permissions: ['activity_logs.view'] },
+        },
       ],
     },
   ],

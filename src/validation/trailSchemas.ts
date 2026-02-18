@@ -23,7 +23,7 @@ export const basicInfoSchema = z.object({
   ),
 })
 
-// Step 1: Trail Stats
+// Step 1: Trail Stats & Requirements
 export const trailStatsSchema = z.object({
   difficulty: z.enum(['easy', 'moderate', 'difficult', 'expert'], {
     error: 'Difficulty is required',
@@ -31,9 +31,15 @@ export const trailStatsSchema = z.object({
   distance_km: z
     .number({ error: 'Distance must be a number' })
     .positive('Distance must be greater than 0'),
-  duration_hours: z
+  duration_type: z.enum(['hours', 'days']).optional(),
+  duration_min: z
     .number()
-    .positive('Duration must be greater than 0')
+    .positive('Duration min must be greater than 0')
+    .nullable()
+    .optional(),
+  duration_max: z
+    .number()
+    .positive('Duration max must be greater than 0')
     .nullable()
     .optional(),
   elevation_gain_m: z
@@ -46,9 +52,16 @@ export const trailStatsSchema = z.object({
     .nonnegative('Max altitude cannot be negative')
     .nullable()
     .optional(),
+  is_year_round: z.boolean().optional(),
+  best_months: z.array(z.number()).optional(),
+  season_notes: z.string().optional().or(z.literal('')),
+  requires_guide: z.boolean().optional(),
+  requires_permit: z.boolean().optional(),
+  permit_info: z.string().optional().or(z.literal('')),
+  accommodation_types: z.array(z.string()).optional(),
 })
 
-// Step 2: Location
+// Step 2: Location & Region
 export const mapLocationSchema = z.object({
   latitude: z
     .number({ error: 'Latitude is required' })
@@ -59,8 +72,7 @@ export const mapLocationSchema = z.object({
     .min(-180, 'Longitude must be between -180 and 180')
     .max(180, 'Longitude must be between -180 and 180'),
   location_name: z.string().min(1, 'Location name is required'),
-  county_id: z.number().positive().nullable().optional(),
-  county_slug: z.string().min(1, 'County is required'),
+  region_id: z.number({ error: 'Region is required' }).positive('Region is required'),
 })
 
 // Step 3: Routes
@@ -100,6 +112,22 @@ export const mediaSchema = z.object({
     .positive('Featured image is required'),
 })
 
+// Step 5: Itinerary
+export const itinerarySchema = z.object({
+  itinerary: z.array(
+    z.object({
+      day_number: z.number().positive(),
+      title: z.string().min(1, 'Day title is required'),
+      description: z.string().optional().or(z.literal('')),
+      distance_km: z.number().positive().nullable().optional(),
+      elevation_gain_m: z.number().nonnegative().nullable().optional(),
+      start_point: z.string().optional().or(z.literal('')),
+      end_point: z.string().optional().or(z.literal('')),
+      accommodation: z.string().optional().or(z.literal('')),
+    }),
+  ).optional(),
+})
+
 // Draft schema - minimal validation for saving drafts
 export const draftSchema = z.object({
   name: z.string().min(1, 'Trail name is required to save a draft'),
@@ -111,5 +139,6 @@ export const stepSchemas = [
   mapLocationSchema,
   routesSchema,
   mediaSchema,
+  itinerarySchema,
   null, // Review step has no schema
 ] as const

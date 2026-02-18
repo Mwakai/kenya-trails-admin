@@ -5,7 +5,7 @@ import { useTrailsStore } from '@/stores/trails'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/services/api'
-import type { Trail, TrailFilters, TrailStatus, TrailDifficulty } from '@/types/trail'
+import type { Trail, TrailFilters } from '@/types/trail'
 import TrailStatusBadge from '@/components/trails/TrailStatusBadge.vue'
 import TrailDifficultyBadge from '@/components/trails/TrailDifficultyBadge.vue'
 import TrailCard from '@/components/trails/TrailCard.vue'
@@ -31,7 +31,7 @@ const filters = ref<TrailFilters>({
   search: '',
   status: undefined,
   difficulty: undefined,
-  county_slug: undefined,
+  region_id: undefined,
   with_deleted: false,
 })
 const searchInput = ref('')
@@ -80,13 +80,11 @@ const hasActiveFilters = computed(() => {
     filters.value.search ||
     filters.value.status ||
     filters.value.difficulty ||
-    filters.value.county_slug ||
+    filters.value.region_id ||
     filters.value.with_deleted
   )
 })
 
-const popularCounties = computed(() => trailsStore.counties.filter((c) => c.is_popular))
-const otherCounties = computed(() => trailsStore.counties.filter((c) => !c.is_popular))
 
 // Methods
 async function loadTrails() {
@@ -97,7 +95,7 @@ async function loadTrails() {
   if (filters.value.search) activeFilters.search = filters.value.search
   if (filters.value.status) activeFilters.status = filters.value.status
   if (filters.value.difficulty) activeFilters.difficulty = filters.value.difficulty
-  if (filters.value.county_slug) activeFilters.county_slug = filters.value.county_slug
+  if (filters.value.region_id) activeFilters.region_id = filters.value.region_id
   if (filters.value.with_deleted) activeFilters.with_deleted = true
 
   await trailsStore.fetchTrails(activeFilters)
@@ -132,7 +130,7 @@ function clearFilters() {
     search: '',
     status: undefined,
     difficulty: undefined,
-    county_slug: undefined,
+    region_id: undefined,
     with_deleted: false,
   }
   loadTrails()
@@ -211,10 +209,13 @@ function formatDistance(km: number | null): string {
   return `${km} km`
 }
 
-function formatDuration(hours: number | null): string {
-  if (hours === null) return '-'
-  if (hours < 1) return `${Math.round(hours * 60)} min`
-  return `${hours} hr`
+function formatDuration(trail: Trail): string {
+  if (trail.duration_min == null) return '-'
+  const unit = trail.duration_type === 'days' ? 'd' : 'hr'
+  if (trail.duration_max != null && trail.duration_max > trail.duration_min) {
+    return `${trail.duration_min}–${trail.duration_max} ${unit}`
+  }
+  return `${trail.duration_min} ${unit}`
 }
 
 function formatDate(dateStr: string): string {
@@ -232,7 +233,7 @@ function handlePerPageChange() {
 
 onMounted(async () => {
   try {
-    await Promise.all([loadTrails(), trailsStore.fetchCounties()])
+    await Promise.all([trailsStore.ensureTrails(), trailsStore.ensureRegions()])
   } catch {
     // Errors are captured in store state (trailsStore.error)
   }
@@ -281,18 +282,11 @@ onMounted(async () => {
           <option value="difficult">Difficult</option>
           <option value="expert">Expert</option>
         </select>
-        <select v-model="filters.county_slug" class="filter-select" @change="handleFilterChange">
-          <option :value="undefined">All Counties</option>
-          <optgroup v-if="popularCounties.length" label="Popular">
-            <option v-for="county in popularCounties" :key="county.slug" :value="county.slug">
-              {{ county.name }}
-            </option>
-          </optgroup>
-          <optgroup v-if="otherCounties.length" label="Other Counties">
-            <option v-for="county in otherCounties" :key="county.slug" :value="county.slug">
-              {{ county.name }}
-            </option>
-          </optgroup>
+        <select v-model="filters.region_id" class="filter-select" @change="handleFilterChange">
+          <option :value="undefined">All Regions</option>
+          <option v-for="region in trailsStore.regions" :key="region.id" :value="region.id">
+            {{ region.name }}
+          </option>
         </select>
 
         <!-- View Toggle -->
@@ -408,13 +402,17 @@ onMounted(async () => {
                 <span class="trail-slug">/trails/{{ trail.slug }}</span>
               </div>
             </td>
-            <td>{{ trail.county?.name || '-' }}</td>
+            <td>
+              <span v-if="trail.location_name" class="trail-location">{{ trail.location_name }}</span>
+              <span v-if="trail.region" class="trail-region">{{ trail.region.name }}</span>
+              <span v-if="!trail.location_name && !trail.region">-</span>
+            </td>
             <td>
               <TrailDifficultyBadge v-if="trail.difficulty" :difficulty="trail.difficulty" />
               <span v-else>-</span>
             </td>
             <td>
-              {{ formatDistance(trail.distance_km) }} / {{ formatDuration(trail.duration_hours) }}
+              {{ formatDistance(trail.distance_km) }} / {{ formatDuration(trail) }}
             </td>
             <td>
               <TrailStatusBadge :status="trail.status" />
@@ -870,6 +868,17 @@ onMounted(async () => {
 }
 
 .trail-slug {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.trail-location {
+  display: block;
+  font-weight: var(--font-weight-medium);
+}
+
+.trail-region {
   display: block;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);

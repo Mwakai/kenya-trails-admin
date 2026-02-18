@@ -16,10 +16,13 @@ function formatDistance(km: number | null): string {
   return `${km} km`
 }
 
-function formatDuration(hours: number | null): string {
-  if (hours === null) return '-'
-  if (hours < 1) return `${Math.round(hours * 60)} min`
-  return `${hours} hr`
+function formatDuration(trail: Trail): string {
+  if (trail.duration_min == null) return '-'
+  const unit = trail.duration_type === 'days' ? 'd' : 'hr'
+  if (trail.duration_max != null && trail.duration_max > trail.duration_min) {
+    return `${trail.duration_min}–${trail.duration_max} ${unit}`
+  }
+  return `${trail.duration_min} ${unit}`
 }
 
 function formatDate(dateStr: string): string {
@@ -50,12 +53,12 @@ function formatDate(dateStr: string): string {
     </div>
     <div class="card-body">
       <h3 class="card-title">{{ trail.name }}</h3>
-      <p v-if="trail.location_name || trail.county" class="card-location">
-        {{ trail.location_name }}<span v-if="trail.location_name && trail.county">, </span>{{ trail.county?.name }}
+      <p v-if="trail.location_name || trail.region" class="card-location">
+        {{ trail.location_name }}<span v-if="trail.location_name && trail.region">, </span>{{ trail.region?.name }}
       </p>
       <div class="card-stats">
         <span v-if="trail.distance_km" class="stat">{{ formatDistance(trail.distance_km) }}</span>
-        <span v-if="trail.duration_hours" class="stat">{{ formatDuration(trail.duration_hours) }}</span>
+        <span v-if="trail.duration_min" class="stat">{{ formatDuration(trail) }}</span>
         <TrailDifficultyBadge v-if="trail.difficulty" :difficulty="trail.difficulty" />
       </div>
       <div class="card-footer">

@@ -17,8 +17,8 @@ let map: google.maps.Map | null = null
 let marker: google.maps.marker.AdvancedMarkerElement | null = null
 
 onMounted(async () => {
-  if (trailsStore.counties.length === 0) {
-    trailsStore.fetchCounties()
+  if (trailsStore.regions.length === 0) {
+    trailsStore.fetchRegions()
   }
 
   if (!mapContainer.value) return
@@ -107,16 +107,16 @@ function handleMarkerDrag() {
   ctx.formData.longitude = lng
 }
 
-function handleCountyChange(event: Event) {
+function handleRegionChange(event: Event) {
   const val = (event.target as HTMLSelectElement).value
-  ctx.formData.county_slug = val
+  ctx.formData.region_id = val ? Number(val) : null
 }
 </script>
 
 <template>
   <div class="step-content">
-    <h2 class="step-title">Map & Location</h2>
-    <p class="step-subtitle">Set the trail location on the map and provide location details.</p>
+    <h2 class="step-title">Location & Region</h2>
+    <p class="step-subtitle">Set the trail location on the map and select its region.</p>
 
     <div class="form-group">
       <label class="field-label">Search Location</label>
@@ -155,24 +155,24 @@ function handleCountyChange(event: Event) {
       </div>
 
       <div class="form-group">
-        <label class="field-label" for="county">County <span class="required">*</span></label>
+        <label class="field-label" for="region">Region <span class="required">*</span></label>
         <select
-          id="county"
+          id="region"
           class="form-select"
-          :class="{ 'input-error': errors.county_slug }"
-          :value="ctx.formData.county_slug"
-          @change="handleCountyChange"
+          :class="{ 'input-error': errors.region_id }"
+          :value="ctx.formData.region_id ?? ''"
+          @change="handleRegionChange"
         >
-          <option value="">Select county...</option>
+          <option value="">Select region...</option>
           <option
-            v-for="county in trailsStore.counties"
-            :key="county.slug"
-            :value="county.slug"
+            v-for="region in trailsStore.regions"
+            :key="region.id"
+            :value="region.id"
           >
-            {{ county.name }}
+            {{ region.name }}<template v-if="region.trail_count != null"> ({{ region.trail_count }} trails)</template>
           </option>
         </select>
-        <span v-if="errors.county_slug" class="error-msg">{{ errors.county_slug }}</span>
+        <span v-if="errors.region_id" class="error-msg">{{ errors.region_id }}</span>
       </div>
     </div>
 

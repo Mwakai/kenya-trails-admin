@@ -2,6 +2,8 @@ import type { Media, PaginationMeta, Amenity } from './auth'
 
 export type TrailStatus = 'draft' | 'published' | 'archived'
 export type TrailDifficulty = 'easy' | 'moderate' | 'difficult' | 'expert'
+export type DurationType = 'hours' | 'days'
+export type AccommodationType = 'camping' | 'huts' | 'bandas' | 'hotels'
 
 export interface TrailGalleryImage {
   id: number
@@ -28,11 +30,26 @@ export interface TrailRoute {
   images: Media[]
 }
 
-export interface County {
+export interface Region {
   id: number
   name: string
   slug: string
-  is_popular: boolean
+  description: string | null
+  latitude: number | null
+  longitude: number | null
+  trail_count: number
+}
+
+export interface ItineraryDay {
+  id: number
+  day_number: number
+  title: string
+  description: string | null
+  distance_km: number | null
+  elevation_gain_m: number | null
+  start_point: string | null
+  end_point: string | null
+  accommodation: string | null
 }
 
 export interface Trail {
@@ -44,14 +61,24 @@ export interface Trail {
   status: TrailStatus
   difficulty: TrailDifficulty | null
   distance_km: number | null
-  duration_hours: number | null
+  duration_type: DurationType | null
+  duration_min: number | null
+  duration_max: number | null
+  is_multi_day: boolean
   elevation_gain_m: number | null
   max_altitude_m: number | null
   latitude: number | null
   longitude: number | null
   location_name: string | null
-  county_id: number | null
-  county: County | null
+  region_id: number | null
+  region: Region | null
+  is_year_round: boolean
+  best_months: number[]
+  season_notes: string | null
+  requires_guide: boolean
+  requires_permit: boolean
+  permit_info: string | null
+  accommodation_types: AccommodationType[]
   video_url: string | null
   featured_image_id: number | null
   featured_image: Media | null
@@ -60,6 +87,7 @@ export interface Trail {
   gallery: TrailGalleryImage[]
   gpx_files: TrailGpxFile[]
   amenities: Amenity[]
+  itinerary: ItineraryDay[]
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -89,19 +117,16 @@ export interface TrailDeleteResponse {
   status: number
 }
 
-export interface CountyOption {
-  slug: string
+export interface RegionOption {
+  id: number
   name: string
-  is_popular: boolean
+  slug: string
+  trail_count?: number
 }
 
-export interface CountyListResponse {
+export interface RegionListResponse {
   data: {
-    counties: {
-      popular: Record<string, string>
-      other: Record<string, string>
-      all: Record<string, string>
-    }
+    regions: RegionOption[]
   }
   message: string
   status: number
@@ -114,7 +139,7 @@ export interface TrailFilters {
   search?: string
   status?: TrailStatus
   difficulty?: TrailDifficulty
-  county_slug?: string
+  region_id?: number
   with_deleted?: boolean
   sort_by?: string
   sort_dir?: 'asc' | 'desc'
@@ -128,14 +153,23 @@ export interface CreateTrailPayload {
   status?: TrailStatus
   difficulty?: TrailDifficulty
   distance_km?: number
-  duration_hours?: number
+  duration_type?: DurationType
+  duration_min?: number
+  duration_max?: number
+  is_multi_day?: boolean
   elevation_gain_m?: number
   max_altitude_m?: number
   latitude?: number
   longitude?: number
   location_name?: string
-  county_id?: number
-  county?: string
+  region_id?: number
+  is_year_round?: boolean
+  best_months?: number[]
+  season_notes?: string
+  requires_guide?: boolean
+  requires_permit?: boolean
+  permit_info?: string
+  accommodation_types?: AccommodationType[]
   video_url?: string
   featured_image_id?: number
   amenity_ids?: number[]
@@ -143,6 +177,7 @@ export interface CreateTrailPayload {
   route_b?: RoutePayload
   gallery?: GalleryItemPayload[]
   gpx_file_ids?: number[]
+  itinerary?: ItineraryDayPayload[]
 }
 
 export interface UpdateTrailPayload extends Partial<CreateTrailPayload> {}
@@ -161,30 +196,61 @@ export interface GalleryItemPayload {
   sort_order: number
 }
 
+export interface ItineraryDayPayload {
+  day_number: number
+  title: string
+  description?: string
+  distance_km?: number
+  elevation_gain_m?: number
+  start_point?: string
+  end_point?: string
+  accommodation?: string
+}
+
+export interface ItineraryDayForm {
+  day_number: number
+  title: string
+  description: string
+  distance_km: number | null
+  elevation_gain_m: number | null
+  start_point: string
+  end_point: string
+  accommodation: string
+}
+
 // Wizard form state
 export interface TrailFormData {
-  // Step 1: Basic Info
+  // Step 0: Basic Info
   name: string
   short_description: string
   description: string
 
-  // Step 2: Stats
+  // Step 1: Stats & Requirements
   difficulty: TrailDifficulty | ''
   distance_km: number | null
-  duration_hours: number | null
+  duration_type: DurationType
+  duration_min: number | null
+  duration_max: number | null
+  is_multi_day: boolean
   elevation_gain_m: number | null
   max_altitude_m: number | null
   amenity_ids: number[]
+  is_year_round: boolean
+  best_months: number[]
+  season_notes: string
+  requires_guide: boolean
+  requires_permit: boolean
+  permit_info: string
+  accommodation_types: AccommodationType[]
 
-  // Step 3: Location
+  // Step 2: Location & Region
   latitude: number | null
   longitude: number | null
   location_name: string
-  county_id: number | null
-  county_slug: string
+  region_id: number | null
   gpx_file_ids: number[]
 
-  // Step 4: Routes
+  // Step 3: Routes
   route_a: {
     name: string
     directions: string
@@ -201,7 +267,7 @@ export interface TrailFormData {
     image_ids: number[]
   }
 
-  // Step 5: Media
+  // Step 4: Media
   featured_image_id: number | null
   featured_image: Media | null
   gallery: {
@@ -211,6 +277,9 @@ export interface TrailFormData {
     sort_order: number
   }[]
   video_url: string
+
+  // Step 5: Itinerary
+  itinerary: ItineraryDayForm[]
 
   // Step 6: Review
   publish_status: TrailStatus

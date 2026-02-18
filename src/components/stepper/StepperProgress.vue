@@ -1,26 +1,36 @@
 <script setup lang="ts">
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
 import { trailFormKey, STEP_LABELS } from '@/composables/useTrailForm'
 
 const ctx = inject(trailFormKey)!
+
+const visibleSteps = computed(() => {
+  const steps: { label: string; index: number }[] = []
+  for (let i = 0; i < STEP_LABELS.length; i++) {
+    // Hide itinerary step (5) when not multi-day
+    if (i === 5 && !ctx.formData.is_multi_day) continue
+    steps.push({ label: STEP_LABELS[i], index: i })
+  }
+  return steps
+})
 </script>
 
 <template>
   <div class="stepper-progress">
     <div
-      v-for="(label, index) in STEP_LABELS"
-      :key="index"
+      v-for="(step, pos) in visibleSteps"
+      :key="step.index"
       class="step-item"
       :class="{
-        active: ctx.currentStep.value === index,
-        completed: index < ctx.currentStep.value,
-        clickable: index < ctx.currentStep.value,
+        active: ctx.currentStep.value === step.index,
+        completed: step.index < ctx.currentStep.value,
+        clickable: step.index < ctx.currentStep.value,
       }"
-      @click="index < ctx.currentStep.value ? ctx.goToStep(index) : undefined"
+      @click="step.index < ctx.currentStep.value ? ctx.goToStep(step.index) : undefined"
     >
       <div class="step-circle">
         <svg
-          v-if="index < ctx.currentStep.value"
+          v-if="step.index < ctx.currentStep.value"
           width="14"
           height="14"
           viewBox="0 0 24 24"
@@ -30,10 +40,10 @@ const ctx = inject(trailFormKey)!
         >
           <path d="M20 6L9 17l-5-5" />
         </svg>
-        <span v-else>{{ index + 1 }}</span>
+        <span v-else>{{ pos + 1 }}</span>
       </div>
-      <span class="step-label">{{ label }}</span>
-      <div v-if="index < STEP_LABELS.length - 1" class="step-line" />
+      <span class="step-label">{{ step.label }}</span>
+      <div v-if="pos < visibleSteps.length - 1" class="step-line" />
     </div>
   </div>
 </template>

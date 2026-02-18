@@ -10,13 +10,15 @@ import type {
   CreateTrailPayload,
   UpdateTrailPayload,
   TrailFilters,
-  CountyOption,
-  CountyListResponse,
+  RegionOption,
+  RegionListResponse,
 } from '@/types/trail'
+
+const STALE_AFTER_MS = 5 * 60 * 1000 // 5 minutes
 
 export const useTrailsStore = defineStore('trails', () => {
   const trails = ref<Trail[]>([])
-  const counties = ref<CountyOption[]>([])
+  const regions = ref<RegionOption[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const meta = ref<PaginationMeta>({
@@ -26,8 +28,17 @@ export const useTrailsStore = defineStore('trails', () => {
     total: 0,
   })
 
-  async function fetchTrails(filters: TrailFilters = {}): Promise<void> {
-    loading.value = true
+  // Cache tracking
+  const _initialized = ref(false)
+  const _regionsInitialized = ref(false)
+  const _lastFetchedAt = ref(0)
+
+  // In-flight deduplication
+  let _trailsPromise: Promise<void> | null = null
+  let _regionsPromise: Promise<void> | null = null
+
+  async function fetchTrails(filters: TrailFilters = {}, opts?: { silent?: boolean }): Promise<void> {
+    if (!opts?.silent) loading.value = true
     error.value = null
     try {
       const params = new URLSearchParams()
@@ -36,7 +47,7 @@ export const useTrailsStore = defineStore('trails', () => {
       if (filters.search) params.append('search', filters.search)
       if (filters.status) params.append('status', filters.status)
       if (filters.difficulty) params.append('difficulty', filters.difficulty)
-      if (filters.county_slug) params.append('county_slug', filters.county_slug)
+      if (filters.region_id) params.append('region_id', String(filters.region_id))
       if (filters.with_deleted) params.append('with_deleted', '1')
       if (filters.sort_by) params.append('sort_by', filters.sort_by)
       if (filters.sort_dir) params.append('sort_dir', filters.sort_dir)
@@ -51,12 +62,26 @@ export const useTrailsStore = defineStore('trails', () => {
       if (response.meta) {
         meta.value = response.meta
       }
+      _initialized.value = true
+      _lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'Failed to load trails'
       throw err
     } finally {
-      loading.value = false
+      if (!opts?.silent) loading.value = false
     }
+  }
+
+  async function ensureTrails(filters: TrailFilters = {}): Promise<void> {
+    if (_initialized.value && trails.value.length > 0) {
+      if (Date.now() - _lastFetchedAt.value > STALE_AFTER_MS) {
+        fetchTrails(filters, { silent: true }).catch(() => {})
+      }
+      return
+    }
+    if (_trailsPromise) return _trailsPromise
+    _trailsPromise = fetchTrails(filters).finally(() => { _trailsPromise = null })
+    return _trailsPromise
   }
 
   async function fetchTrail(id: number): Promise<Trail> {
@@ -131,40 +156,50 @@ export const useTrailsStore = defineStore('trails', () => {
     return response.data.trail
   }
 
-  async function fetchCounties(): Promise<void> {
+  async function fetchRegions(): Promise<void> {
     try {
-      const response = await api.get<CountyListResponse>('/admin/trails/counties', {
+      const response = await api.get<RegionListResponse>('/admin/trails/regions', {
         requiresAuth: true,
       })
-      const raw = response.data.counties
-      const parsed: CountyOption[] = []
-      if (raw.popular) {
-        for (const [slug, name] of Object.entries(raw.popular)) {
-          parsed.push({ slug, name, is_popular: true })
-        }
-      }
-      if (raw.other) {
-        for (const [slug, name] of Object.entries(raw.other)) {
-          parsed.push({ slug, name, is_popular: false })
-        }
-      }
-      counties.value = parsed
+      regions.value = response.data.regions
+      _regionsInitialized.value = true
     } catch (err) {
-      console.error('Failed to load counties:', err)
+      console.error('Failed to load regions:', err)
     }
+  }
+
+  async function ensureRegions(): Promise<void> {
+    if (_regionsInitialized.value && regions.value.length > 0) return
+    if (_regionsPromise) return _regionsPromise
+    _regionsPromise = fetchRegions().finally(() => { _regionsPromise = null })
+    return _regionsPromise
   }
 
   function clearError(): void {
     error.value = null
   }
 
+  function $reset(): void {
+    trails.value = []
+    regions.value = []
+    loading.value = false
+    error.value = null
+    meta.value = { current_page: 1, last_page: 1, per_page: 10, total: 0 }
+    _initialized.value = false
+    _regionsInitialized.value = false
+    _lastFetchedAt.value = 0
+    _trailsPromise = null
+    _regionsPromise = null
+  }
+
   return {
     trails,
-    counties,
+    regions,
     loading,
     error,
     meta,
     fetchTrails,
+    ensureTrails,
     fetchTrail,
     createTrail,
     updateTrail,
@@ -173,7 +208,9 @@ export const useTrailsStore = defineStore('trails', () => {
     unpublishTrail,
     archiveTrail,
     restoreTrail,
-    fetchCounties,
+    fetchRegions,
+    ensureRegions,
     clearError,
+    $reset,
   }
 })

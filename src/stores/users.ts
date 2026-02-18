@@ -16,6 +16,8 @@ import type {
   UserFilters,
 } from '@/types/auth'
 
+const STALE_AFTER_MS = 5 * 60 * 1000 // 5 minutes
+
 export const useUsersStore = defineStore('users', () => {
   const users = ref<User[]>([])
   const roles = ref<RoleOption[]>([])
@@ -29,8 +31,19 @@ export const useUsersStore = defineStore('users', () => {
     total: 0,
   })
 
-  async function fetchUsers(filters: UserFilters = {}): Promise<void> {
-    loading.value = true
+  // Cache tracking
+  const _initialized = ref(false)
+  const _rolesInitialized = ref(false)
+  const _companiesInitialized = ref(false)
+  const _lastFetchedAt = ref(0)
+
+  // In-flight deduplication
+  let _usersPromise: Promise<void> | null = null
+  let _rolesPromise: Promise<void> | null = null
+  let _companiesPromise: Promise<void> | null = null
+
+  async function fetchUsers(filters: UserFilters = {}, opts?: { silent?: boolean }): Promise<void> {
+    if (!opts?.silent) loading.value = true
     error.value = null
     try {
       const params = new URLSearchParams()
@@ -51,12 +64,26 @@ export const useUsersStore = defineStore('users', () => {
       if (response.meta) {
         meta.value = response.meta
       }
+      _initialized.value = true
+      _lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'Failed to load users'
       throw err
     } finally {
-      loading.value = false
+      if (!opts?.silent) loading.value = false
     }
+  }
+
+  async function ensureUsers(filters: UserFilters = {}): Promise<void> {
+    if (_initialized.value && users.value.length > 0) {
+      if (Date.now() - _lastFetchedAt.value > STALE_AFTER_MS) {
+        fetchUsers(filters, { silent: true }).catch(() => {})
+      }
+      return
+    }
+    if (_usersPromise) return _usersPromise
+    _usersPromise = fetchUsers(filters).finally(() => { _usersPromise = null })
+    return _usersPromise
   }
 
   async function fetchUser(id: number): Promise<User> {
@@ -98,9 +125,17 @@ export const useUsersStore = defineStore('users', () => {
         requiresAuth: true,
       })
       roles.value = response.data?.roles ?? []
+      _rolesInitialized.value = true
     } catch (err) {
       console.error('Failed to load roles:', err)
     }
+  }
+
+  async function ensureRoles(): Promise<void> {
+    if (_rolesInitialized.value && roles.value.length > 0) return
+    if (_rolesPromise) return _rolesPromise
+    _rolesPromise = fetchRoles().finally(() => { _rolesPromise = null })
+    return _rolesPromise
   }
 
   async function fetchCompanies(): Promise<void> {
@@ -109,13 +144,37 @@ export const useUsersStore = defineStore('users', () => {
         requiresAuth: true,
       })
       companies.value = response.data?.companies ?? []
+      _companiesInitialized.value = true
     } catch (err) {
       console.error('Failed to load companies:', err)
     }
   }
 
+  async function ensureCompanies(): Promise<void> {
+    if (_companiesInitialized.value && companies.value.length > 0) return
+    if (_companiesPromise) return _companiesPromise
+    _companiesPromise = fetchCompanies().finally(() => { _companiesPromise = null })
+    return _companiesPromise
+  }
+
   function clearError(): void {
     error.value = null
+  }
+
+  function $reset(): void {
+    users.value = []
+    roles.value = []
+    companies.value = []
+    loading.value = false
+    error.value = null
+    meta.value = { current_page: 1, last_page: 1, per_page: 15, total: 0 }
+    _initialized.value = false
+    _rolesInitialized.value = false
+    _companiesInitialized.value = false
+    _lastFetchedAt.value = 0
+    _usersPromise = null
+    _rolesPromise = null
+    _companiesPromise = null
   }
 
   return {
@@ -126,12 +185,16 @@ export const useUsersStore = defineStore('users', () => {
     error,
     meta,
     fetchUsers,
+    ensureUsers,
     fetchUser,
     createUser,
     updateUser,
     deleteUser,
     fetchRoles,
+    ensureRoles,
     fetchCompanies,
+    ensureCompanies,
     clearError,
+    $reset,
   }
 })

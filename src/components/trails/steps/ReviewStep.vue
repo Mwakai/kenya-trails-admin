@@ -1,54 +1,89 @@
 <script setup lang="ts">
-import { inject, computed } from 'vue'
+import { inject, computed, ref } from 'vue'
 import { trailFormKey, type CompletionStatus } from '@/composables/useTrailForm'
+import { useTrailsStore } from '@/stores/trails'
 
 const ctx = inject(trailFormKey)!
+const trailsStore = useTrailsStore()
 
 const completion = computed<CompletionStatus>(() => ctx.completionStatus.value)
 
-const checklistItems = computed(() => [
-  {
-    key: 'basicInfo',
-    label: 'Basic Information',
-    complete: completion.value.basicInfo,
-    step: 0,
-    details: ctx.formData.name || 'Name not set',
-  },
-  {
-    key: 'stats',
-    label: 'Trail Stats',
-    complete: completion.value.stats,
-    step: 1,
-    details: ctx.formData.difficulty
-      ? `${ctx.formData.difficulty} - ${ctx.formData.distance_km ?? 0} km`
-      : 'Not configured',
-  },
-  {
-    key: 'location',
-    label: 'Map & Location',
-    complete: completion.value.location,
-    step: 2,
-    details: ctx.formData.location_name || 'Location not set',
-  },
-  {
-    key: 'routes',
-    label: 'Routes',
-    complete: completion.value.routes,
-    step: 3,
-    details: ctx.formData.route_a.name
-      ? `Route A: ${ctx.formData.route_a.name}${ctx.formData.route_b_enabled ? `, Route B: ${ctx.formData.route_b.name || '(unnamed)'}` : ''}`
-      : 'No routes configured',
-  },
-  {
-    key: 'media',
-    label: 'Media',
-    complete: completion.value.media,
-    step: 4,
-    details: ctx.formData.featured_image_id
-      ? `Featured image set, ${ctx.formData.gallery.length} gallery images`
-      : 'Featured image required',
-  },
-])
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const checklistItems = computed(() => {
+  const items = [
+    {
+      key: 'basicInfo',
+      label: 'Basic Information',
+      complete: completion.value.basicInfo,
+      step: 0,
+      details: ctx.formData.name || 'Name not set',
+      required: true,
+    },
+    {
+      key: 'stats',
+      label: 'Trail Stats & Duration',
+      complete: completion.value.stats,
+      step: 1,
+      details: ctx.formData.difficulty
+        ? `${ctx.formData.difficulty} - ${ctx.formData.distance_km ?? 0} km`
+        : 'Not configured',
+      required: true,
+    },
+    {
+      key: 'location',
+      label: 'Location & Region',
+      complete: completion.value.location,
+      step: 2,
+      details: ctx.formData.location_name
+        ? `${ctx.formData.location_name}${regionName.value ? ` (${regionName.value})` : ''}`
+        : 'Location not set',
+      required: true,
+    },
+    {
+      key: 'routes',
+      label: 'Routes',
+      complete: completion.value.routes,
+      step: 3,
+      details: ctx.formData.route_a.name
+        ? `Route A: ${ctx.formData.route_a.name}${ctx.formData.route_b_enabled ? `, Route B: ${ctx.formData.route_b.name || '(unnamed)'}` : ''}`
+        : 'No routes configured',
+      required: true,
+    },
+    {
+      key: 'media',
+      label: 'Featured Image',
+      complete: completion.value.media,
+      step: 4,
+      details: ctx.formData.featured_image_id
+        ? `Featured image set, ${ctx.formData.gallery.length} gallery images`
+        : 'Featured image required',
+      required: true,
+    },
+  ]
+
+  // Only show itinerary checklist item for multi-day treks
+  if (ctx.formData.is_multi_day) {
+    items.push({
+      key: 'itinerary',
+      label: 'Itinerary',
+      complete: completion.value.itinerary,
+      step: 5,
+      details: ctx.formData.itinerary.length > 0
+        ? `${ctx.formData.itinerary.length} day${ctx.formData.itinerary.length !== 1 ? 's' : ''} planned`
+        : 'No itinerary added',
+      required: false,
+    })
+  }
+
+  return items
+})
+
+const regionName = computed(() => {
+  if (!ctx.formData.region_id) return null
+  const region = trailsStore.regions.find(r => r.id === ctx.formData.region_id)
+  return region?.name ?? null
+})
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim()
@@ -58,6 +93,33 @@ const previewDescription = computed(() => {
   const stripped = stripHtml(ctx.formData.description)
   return stripped.length > 150 ? stripped.substring(0, 150) + '...' : stripped
 })
+
+const durationText = computed(() => {
+  const min = ctx.formData.duration_min
+  const max = ctx.formData.duration_max
+  const type = ctx.formData.duration_type
+  const unit = type === 'days' ? 'day' : 'hr'
+  if (min != null && max != null && max > min) {
+    return `${min}–${max} ${unit}s`
+  }
+  if (min != null) {
+    return `${min} ${unit}${min !== 1 ? 's' : ''}`
+  }
+  return null
+})
+
+const seasonText = computed(() => {
+  if (ctx.formData.is_year_round) return 'Year-round'
+  if (ctx.formData.best_months.length === 0) return null
+  const sorted = [...ctx.formData.best_months].sort((a, b) => a - b)
+  return 'Best: ' + sorted.map(m => monthNames[m - 1]).join(', ')
+})
+
+const showItineraryPreview = computed(() => {
+  return ctx.formData.is_multi_day && ctx.formData.itinerary.length > 0
+})
+
+const itineraryExpanded = ref(false)
 
 function getThumbUrl(): string | null {
   const img = ctx.formData.featured_image
@@ -91,8 +153,57 @@ function getThumbUrl(): string | null {
         <p v-else-if="previewDescription" class="preview-short">{{ previewDescription }}</p>
         <div class="preview-meta">
           <span v-if="ctx.formData.difficulty" class="meta-tag">{{ ctx.formData.difficulty }}</span>
+          <span v-if="ctx.formData.is_multi_day" class="meta-tag multi-day-tag">Multi-day trek</span>
           <span v-if="ctx.formData.distance_km">{{ ctx.formData.distance_km }} km</span>
-          <span v-if="ctx.formData.location_name">{{ ctx.formData.location_name }}</span>
+          <span v-if="durationText">{{ durationText }}</span>
+        </div>
+
+        <!-- Detail rows -->
+        <div class="preview-details">
+          <div v-if="regionName" class="detail-row">
+            <span class="detail-label">Region:</span>
+            <span>{{ regionName }}</span>
+          </div>
+          <div v-if="ctx.formData.location_name" class="detail-row">
+            <span class="detail-label">Location:</span>
+            <span>{{ ctx.formData.location_name }}</span>
+          </div>
+          <div v-if="seasonText" class="detail-row">
+            <span class="detail-label">Season:</span>
+            <span>{{ seasonText }}</span>
+          </div>
+          <div v-if="ctx.formData.requires_guide || ctx.formData.requires_permit" class="detail-row">
+            <span class="detail-label">Requirements:</span>
+            <span class="badge-row">
+              <span v-if="ctx.formData.requires_guide" class="req-badge">Guide Required</span>
+              <span v-if="ctx.formData.requires_permit" class="req-badge">Permit Required</span>
+            </span>
+          </div>
+          <div v-if="ctx.formData.is_multi_day && ctx.formData.accommodation_types.length > 0" class="detail-row">
+            <span class="detail-label">Accommodation:</span>
+            <span>{{ ctx.formData.accommodation_types.join(', ') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Itinerary Preview -->
+    <div v-if="showItineraryPreview" class="itinerary-preview">
+      <button class="section-toggle" @click="itineraryExpanded = !itineraryExpanded">
+        <h3 class="section-title">Itinerary ({{ ctx.formData.itinerary.length }} days)</h3>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          :style="{ transform: itineraryExpanded ? 'rotate(180deg)' : '' }"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div v-if="itineraryExpanded" class="itinerary-days">
+        <div v-for="day in ctx.formData.itinerary" :key="day.day_number" class="itinerary-day-row">
+          <span class="day-num">Day {{ day.day_number }}</span>
+          <span class="day-title">{{ day.title }}</span>
+          <span v-if="day.distance_km" class="day-stat">{{ day.distance_km }}km</span>
+          <span v-if="day.elevation_gain_m" class="day-stat">{{ day.elevation_gain_m }}m gain</span>
         </div>
       </div>
     </div>
@@ -116,7 +227,10 @@ function getThumbUrl(): string | null {
             </svg>
           </div>
           <div>
-            <span class="check-label">{{ item.label }}</span>
+            <span class="check-label">
+              {{ item.label }}
+              <span v-if="!item.required" class="optional-tag">Optional</span>
+            </span>
             <span class="check-details">{{ item.details }}</span>
           </div>
         </div>
@@ -238,7 +352,8 @@ function getThumbUrl(): string | null {
 
 .preview-meta {
   display: flex;
-  gap: var(--space-3);
+  flex-wrap: wrap;
+  gap: var(--space-2);
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
 }
@@ -250,6 +365,104 @@ function getThumbUrl(): string | null {
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-medium);
   text-transform: capitalize;
+}
+
+.multi-day-tag {
+  background: var(--color-background-alt);
+  color: var(--color-text-primary);
+}
+
+.preview-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.detail-row {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+}
+
+.detail-label {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  flex-shrink: 0;
+}
+
+.badge-row {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.req-badge {
+  padding: 1px var(--space-2);
+  background: var(--color-background-alt);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Itinerary Preview */
+.itinerary-preview {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.section-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.section-toggle svg {
+  color: var(--color-text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.itinerary-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.itinerary-day-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-background-alt);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.day-num {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  flex-shrink: 0;
+  min-width: 48px;
+}
+
+.day-title {
+  flex: 1;
+  color: var(--color-text-primary);
+}
+
+.day-stat {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 /* Checklist */
@@ -268,7 +481,7 @@ function getThumbUrl(): string | null {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--space-2) 0;
+  margin: 0;
 }
 
 .checklist-item {
@@ -300,10 +513,21 @@ function getThumbUrl(): string | null {
 }
 
 .check-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
+}
+
+.optional-tag {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-secondary);
+  padding: 0 var(--space-1);
+  background: var(--color-background);
+  border-radius: var(--radius-sm);
 }
 
 .check-details {
@@ -340,6 +564,7 @@ function getThumbUrl(): string | null {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 .status-option {

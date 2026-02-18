@@ -48,7 +48,6 @@ const isSubmitting = ref(false)
 
 // Computed
 const canCreate = computed(() => authStore.hasPermission('users.create'))
-const canUpdate = computed(() => authStore.hasPermission('users.update'))
 const canDelete = computed(() => authStore.hasPermission('users.delete'))
 
 const modalTitle = computed(() => (modalMode.value === 'create' ? 'Create User' : 'Edit User'))
@@ -167,6 +166,13 @@ function openDeleteModal(user: User) {
   showDeleteModal.value = true
 }
 
+function openDeleteFromEdit() {
+  if (!editingUser.value) return
+  const user = editingUser.value
+  closeModal()
+  openDeleteModal(user)
+}
+
 function closeModal() {
   showModal.value = false
   editingUser.value = null
@@ -278,7 +284,11 @@ function getStatusClass(status: string): string {
 }
 
 onMounted(async () => {
-  await Promise.all([loadUsers(), usersStore.fetchRoles(), usersStore.fetchCompanies()])
+  await Promise.all([
+    usersStore.ensureUsers(),
+    usersStore.ensureRoles(),
+    usersStore.ensureCompanies(),
+  ])
 })
 </script>
 
@@ -366,64 +376,29 @@ onMounted(async () => {
           <tr>
             <th>Name</th>
             <th>Email</th>
-            <th>Phone</th>
             <th>Role</th>
-            <th>Company</th>
             <th>Status</th>
-            <th v-if="canUpdate || canDelete">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="user in usersStore.users" :key="user.id">
+          <tr
+            v-for="user in usersStore.users"
+            :key="user.id"
+            class="clickable-row"
+            @click="openEditModal(user)"
+          >
             <td class="user-name">
               <div class="user-avatar">{{ user.first_name[0] }}{{ user.last_name[0] }}</div>
               <span>{{ user.first_name }} {{ user.last_name }}</span>
             </td>
             <td>{{ user.email }}</td>
-            <td>{{ user.phone || '-' }}</td>
             <td>
               <span class="role-badge">{{ user.role.name }}</span>
             </td>
-            <td>{{ user.company?.name || '-' }}</td>
             <td>
               <span class="status-badge" :class="getStatusClass(user.status)">
                 {{ user.status }}
               </span>
-            </td>
-            <td v-if="canUpdate || canDelete" class="actions-cell">
-              <button v-if="canUpdate" class="btn-icon" title="Edit" @click="openEditModal(user)">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-              <button
-                v-if="canDelete"
-                class="btn-icon btn-icon-danger"
-                title="Delete"
-                @click="openDeleteModal(user)"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <polyline points="3 6 5 6 21 6" />
-                  <path
-                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                  />
-                </svg>
-              </button>
             </td>
           </tr>
         </tbody>
@@ -485,13 +460,41 @@ onMounted(async () => {
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
+      <div class="modal modal-lg">
         <div class="modal-header">
           <h2>{{ modalTitle }}</h2>
           <button class="btn-close" @click="closeModal">&times;</button>
         </div>
         <form @submit.prevent="handleSubmit">
           <div class="modal-body">
+            <!-- Avatar Hero -->
+            <div class="modal-avatar-hero">
+              <div class="modal-avatar" :class="{ 'modal-avatar-create': modalMode === 'create' }">
+                <template v-if="modalMode === 'edit' && editingUser">
+                  {{ editingUser.first_name[0] }}{{ editingUser.last_name[0] }}
+                </template>
+                <template v-else>
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </template>
+              </div>
+              <div v-if="modalMode === 'edit' && editingUser" class="modal-avatar-name">
+                {{ editingUser.first_name }} {{ editingUser.last_name }}
+              </div>
+              <div v-if="modalMode === 'edit' && editingUser" class="modal-avatar-email">
+                {{ editingUser.email }}
+              </div>
+            </div>
+
             <div v-if="formError" class="form-error">{{ formError }}</div>
 
             <div class="form-row">
@@ -644,6 +647,31 @@ onMounted(async () => {
                   {{ getFieldError('status') }}
                 </span>
               </div>
+            </div>
+
+            <!-- Delete action -->
+            <div v-if="modalMode === 'edit' && canDelete" class="danger-zone">
+              <button
+                type="button"
+                class="btn-delete-link"
+                :disabled="isSubmitting"
+                @click="openDeleteFromEdit"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+                Delete this user
+              </button>
             </div>
           </div>
           <div class="modal-footer">
@@ -829,26 +857,6 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-.btn-icon {
-  padding: var(--space-2);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-icon:hover {
-  background: var(--color-background-alt);
-  color: var(--color-text-primary);
-}
-
-.btn-icon-danger:hover {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
 .btn-close {
   background: none;
   border: none;
@@ -950,6 +958,10 @@ onMounted(async () => {
   color: var(--color-text-primary);
 }
 
+.users-table tbody tr.clickable-row {
+  cursor: pointer;
+}
+
 .users-table tbody tr:hover {
   background: var(--color-background-alt);
 }
@@ -976,6 +988,7 @@ onMounted(async () => {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .role-badge {
@@ -1004,11 +1017,6 @@ onMounted(async () => {
 .status-inactive {
   background: #fee2e2;
   color: #991b1b;
-}
-
-.actions-cell {
-  display: flex;
-  gap: var(--space-1);
 }
 
 /* Pagination */
@@ -1087,9 +1095,11 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
   box-shadow: var(--shadow-lg);
+}
+
+.modal-lg {
+  max-width: 1200px;
 }
 
 .modal-sm {
@@ -1100,7 +1110,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-3) var(--space-10);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -1112,15 +1122,91 @@ onMounted(async () => {
 }
 
 .modal-body {
-  padding: var(--space-6);
+  padding: var(--space-8) var(--space-10);
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-6) var(--space-10);
   border-top: 1px solid var(--color-border);
+}
+
+/* Modal Avatar Hero */
+.modal-avatar-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.modal-avatar-create {
+  background: var(--color-background-alt);
+  color: var(--color-text-secondary);
+}
+
+.modal-avatar-name {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.modal-avatar-email {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Danger Zone / Delete Link */
+.danger-zone {
+  margin-top: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--color-border);
+  text-align: center;
+}
+
+.btn-delete-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.btn-delete-link:hover:not(:disabled) {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.btn-delete-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Form */
@@ -1159,7 +1245,7 @@ onMounted(async () => {
 
 .form-group input,
 .form-group select {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -1220,6 +1306,10 @@ onMounted(async () => {
   .pagination-container {
     flex-direction: column;
     text-align: center;
+  }
+
+  .modal-lg {
+    max-width: 100%;
   }
 }
 </style>

@@ -204,7 +204,7 @@ function getStatusClass(isActive: boolean): string {
 }
 
 onMounted(async () => {
-  await amenitiesStore.fetchAmenities()
+  await amenitiesStore.ensureAmenities()
 })
 </script>
 
