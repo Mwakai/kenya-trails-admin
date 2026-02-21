@@ -29,12 +29,6 @@ const router = createRouter({
           meta: { title: 'Users', permissions: ['users.view'] },
         },
         {
-          path: 'companies',
-          name: 'companies',
-          component: () => import('@/views/CompaniesView.vue'),
-          meta: { title: 'Companies', permissions: ['companies.view'] },
-        },
-        {
           path: 'media',
           name: 'media',
           component: () => import('@/views/MediaView.vue'),
@@ -72,12 +66,57 @@ const router = createRouter({
         },
         {
           path: 'group-hikes',
-          name: 'group-hikes',
-          component: () => import('@/views/GroupHikesView.vue'),
-          meta: {
-            title: 'Group Hikes',
-            permissions: ['group_hikes.view_all', 'group_hikes.view_own'],
-          },
+          meta: { permissions: ['group_hikes.view_all', 'group_hikes.view_own'] },
+          children: [
+            {
+              path: '',
+              name: 'group-hikes',
+              component: () => import('@/views/group-hikes/GroupHikeListPage.vue'),
+              meta: { title: 'Group Hikes' },
+            },
+            {
+              path: 'create',
+              name: 'group-hikes-create',
+              component: () => import('@/views/group-hikes/GroupHikeFormPage.vue'),
+              meta: { title: 'Create Group Hike', permissions: ['group_hikes.create'] },
+            },
+            {
+              path: ':id/edit',
+              name: 'group-hikes-edit',
+              component: () => import('@/views/group-hikes/GroupHikeFormPage.vue'),
+              meta: { title: 'Edit Group Hike', permissions: ['group_hikes.update_own', 'group_hikes.update_all'] },
+            },
+            {
+              path: ':id',
+              name: 'group-hike-detail',
+              component: () => import('@/views/group-hikes/GroupHikeDetailPage.vue'),
+              meta: { title: 'Group Hike Detail' },
+            },
+          ],
+        },
+        {
+          path: 'companies',
+          meta: { permissions: ['companies.view'] },
+          children: [
+            {
+              path: '',
+              name: 'companies',
+              component: () => import('@/views/companies/CompanyListPage.vue'),
+              meta: { title: 'Companies' },
+            },
+            {
+              path: 'create',
+              name: 'companies-create',
+              component: () => import('@/views/companies/CompanyFormPage.vue'),
+              meta: { title: 'Add Company', permissions: ['companies.create'] },
+            },
+            {
+              path: ':id/edit',
+              name: 'companies-edit',
+              component: () => import('@/views/companies/CompanyFormPage.vue'),
+              meta: { title: 'Edit Company', permissions: ['companies.update'] },
+            },
+          ],
         },
         {
           path: 'activity-logs',
