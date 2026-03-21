@@ -19,7 +19,6 @@ const toast = useToast()
 const canCreate = computed(() => authStore.hasPermission('trails.create'))
 const canUpdate = computed(() => authStore.hasPermission('trails.update'))
 const canDelete = computed(() => authStore.hasPermission('trails.delete'))
-const canPublish = computed(() => authStore.hasPermission('trails.publish'))
 
 // View mode
 const viewMode = ref<'table' | 'grid'>('table')
@@ -85,7 +84,6 @@ const hasActiveFilters = computed(() => {
   )
 })
 
-
 // Methods
 async function loadTrails() {
   const activeFilters: TrailFilters = {
@@ -144,10 +142,6 @@ function navigateToEdit(trail: Trail) {
   router.push({ name: 'trails-edit', params: { id: trail.id } })
 }
 
-function toggleActions(trailId: number) {
-  openActionsId.value = openActionsId.value === trailId ? null : trailId
-}
-
 function closeActions() {
   openActionsId.value = null
 }
@@ -179,28 +173,6 @@ async function handleDelete() {
     }
   } finally {
     isDeleting.value = false
-  }
-}
-
-async function handlePublish(trail: Trail) {
-  closeActions()
-  try {
-    await trailsStore.publishTrail(trail.id)
-    await loadTrails()
-    toast.success('Trail published successfully')
-  } catch (err) {
-    if (err instanceof ApiError) toast.error(err.message)
-  }
-}
-
-async function handleUnpublish(trail: Trail) {
-  closeActions()
-  try {
-    await trailsStore.unpublishTrail(trail.id)
-    await loadTrails()
-    toast.success('Trail unpublished')
-  } catch (err) {
-    if (err instanceof ApiError) toast.error(err.message)
   }
 }
 
@@ -256,7 +228,15 @@ onMounted(async () => {
     <!-- Filters Bar -->
     <div class="filters-bar">
       <div class="search-box">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="search-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
@@ -297,7 +277,14 @@ onMounted(async () => {
             title="Table view"
             @click="viewMode = 'table'"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
           </button>
@@ -307,7 +294,14 @@ onMounted(async () => {
             title="Grid view"
             @click="viewMode = 'grid'"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <rect x="3" y="3" width="7" height="7" />
               <rect x="14" y="3" width="7" height="7" />
               <rect x="3" y="14" width="7" height="7" />
@@ -317,11 +311,7 @@ onMounted(async () => {
         </div>
 
         <label v-if="authStore.hasPermission('trails.delete')" class="checkbox-label">
-          <input
-            v-model="filters.with_deleted"
-            type="checkbox"
-            @change="handleFilterChange"
-          />
+          <input v-model="filters.with_deleted" type="checkbox" @change="handleFilterChange" />
           Show deleted
         </label>
 
@@ -383,6 +373,7 @@ onMounted(async () => {
             v-for="trail in trailsStore.trails"
             :key="trail.id"
             :class="{ 'row-deleted': trail.deleted_at }"
+            @click="navigateToEdit(trail)"
           >
             <td class="trail-name-cell">
               <div class="trail-thumb">
@@ -392,7 +383,14 @@ onMounted(async () => {
                   :alt="trail.name"
                 />
                 <div v-else class="thumb-placeholder">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
                     <path d="M3 3h18v18H3zM8 10l3 3 2-2 4 4" />
                   </svg>
                 </div>
@@ -403,7 +401,9 @@ onMounted(async () => {
               </div>
             </td>
             <td>
-              <span v-if="trail.location_name" class="trail-location">{{ trail.location_name }}</span>
+              <span v-if="trail.location_name" class="trail-location">{{
+                trail.location_name
+              }}</span>
               <span v-if="trail.region" class="trail-region">{{ trail.region.name }}</span>
               <span v-if="!trail.location_name && !trail.region">-</span>
             </td>
@@ -411,49 +411,32 @@ onMounted(async () => {
               <TrailDifficultyBadge v-if="trail.difficulty" :difficulty="trail.difficulty" />
               <span v-else>-</span>
             </td>
-            <td>
-              {{ formatDistance(trail.distance_km) }} / {{ formatDuration(trail) }}
-            </td>
+            <td>{{ formatDistance(trail.distance_km) }} / {{ formatDuration(trail) }}</td>
             <td>
               <TrailStatusBadge :status="trail.status" />
             </td>
             <td>{{ formatDate(trail.created_at) }}</td>
             <td v-if="canUpdate || canDelete" class="actions-cell">
-              <div class="actions-wrapper">
-                <button class="btn-icon" title="Actions" @click.stop="toggleActions(trail.id)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="5" r="1" />
-                    <circle cx="12" cy="12" r="1" />
-                    <circle cx="12" cy="19" r="1" />
-                  </svg>
-                </button>
-                <div v-if="openActionsId === trail.id" class="actions-dropdown" @click.stop>
-                  <button v-if="canUpdate" class="dropdown-item" @click="navigateToEdit(trail)">
-                    Edit
-                  </button>
-                  <button
-                    v-if="canPublish && trail.status === 'draft'"
-                    class="dropdown-item"
-                    @click="handlePublish(trail)"
-                  >
-                    Publish
-                  </button>
-                  <button
-                    v-if="canPublish && trail.status === 'published'"
-                    class="dropdown-item"
-                    @click="handleUnpublish(trail)"
-                  >
-                    Unpublish
-                  </button>
-                  <button
-                    v-if="canDelete && !trail.deleted_at"
-                    class="dropdown-item dropdown-item-danger"
-                    @click="openDeleteModal(trail)"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+              <!-- <div v-if="openActionsId === trail.id" class="actions-dropdown" @click.stop> -->
+              <button
+                v-if="canDelete && !trail.deleted_at"
+                class="dropdown-item dropdown-item-danger"
+                @click.stop="openDeleteModal(trail)"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+              </button>
             </td>
           </tr>
         </tbody>
@@ -463,7 +446,8 @@ onMounted(async () => {
       <div v-if="trailsStore.meta?.total > 0" class="pagination-container">
         <div class="pagination-left">
           <span class="pagination-info">
-            Showing {{ paginationInfo.start }} to {{ paginationInfo.end }} of {{ paginationInfo.total }} trails
+            Showing {{ paginationInfo.start }} to {{ paginationInfo.end }} of
+            {{ paginationInfo.total }} trails
           </span>
           <select v-model="filters.per_page" class="per-page-select" @change="handlePerPageChange">
             <option :value="10">10 per page</option>
@@ -477,7 +461,14 @@ onMounted(async () => {
             :disabled="trailsStore.meta?.current_page === 1"
             @click="goToPage(trailsStore.meta?.current_page - 1)"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
@@ -497,7 +488,14 @@ onMounted(async () => {
             :disabled="trailsStore.meta?.current_page === trailsStore.meta?.last_page"
             @click="goToPage(trailsStore.meta?.current_page + 1)"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M9 18l6-6-6-6" />
             </svg>
           </button>
@@ -514,11 +512,14 @@ onMounted(async () => {
         </div>
         <div class="modal-body">
           <p>
-            Are you sure you want to delete <strong>{{ trailToDelete?.name }}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{{ trailToDelete?.name }}</strong
+            >? This action cannot be undone.
           </p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" :disabled="isDeleting" @click="closeDeleteModal">Cancel</button>
+          <button class="btn btn-secondary" :disabled="isDeleting" @click="closeDeleteModal">
+            Cancel
+          </button>
           <button class="btn btn-danger" :disabled="isDeleting" @click="handleDelete">
             {{ isDeleting ? 'Deleting...' : 'Delete' }}
           </button>
@@ -751,7 +752,9 @@ onMounted(async () => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state {
@@ -798,6 +801,10 @@ onMounted(async () => {
 .trails-table {
   width: 100%;
   border-collapse: collapse;
+}
+.trails-table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
 }
 
 .trails-table th,
