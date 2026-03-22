@@ -11,7 +11,7 @@ const app = createApp(App)
 if (!import.meta.env.DEV) {
   Sentry.init({
     app,
-    dsn: 'https://dc6ed35bdf0517d7e12eac61ea88dd28@o4507052180439040.ingest.us.sentry.io/4511085560659968',
+    dsn: import.meta.env.VITE_SENTRY_DSN,
     // Setting this option to true will send default PII data to Sentry.
     // For example, automatic IP address collection on events
     sendDefaultPii: true,
