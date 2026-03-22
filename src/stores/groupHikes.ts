@@ -2,7 +2,12 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError } from '@/services/api'
 import { groupHikeService } from '@/services/groupHikeService'
-import type { GroupHike, GroupHikeListItem, GroupHikeFormData, GroupHikeFilters } from '@/types/groupHike'
+import type {
+  GroupHike,
+  GroupHikeListItem,
+  GroupHikeFormData,
+  GroupHikeFilters,
+} from '@/types/groupHike'
 import type { PaginationMeta } from '@/types/auth'
 
 const STALE_AFTER_MS = 5 * 60 * 1000
@@ -22,7 +27,10 @@ export const useGroupHikesStore = defineStore('groupHikes', () => {
   const _lastFetchedAt = ref(0)
   let _hikesPromise: Promise<void> | null = null
 
-  async function fetchGroupHikes(filters: Partial<GroupHikeFilters> = {}, opts?: { silent?: boolean }): Promise<void> {
+  async function fetchGroupHikes(
+    filters: Partial<GroupHikeFilters> = {},
+    opts?: { silent?: boolean },
+  ): Promise<void> {
     if (!opts?.silent) loading.value = true
     error.value = null
     try {
@@ -49,7 +57,9 @@ export const useGroupHikesStore = defineStore('groupHikes', () => {
       return
     }
     if (_hikesPromise) return _hikesPromise
-    _hikesPromise = fetchGroupHikes(filters).finally(() => { _hikesPromise = null })
+    _hikesPromise = fetchGroupHikes(filters).finally(() => {
+      _hikesPromise = null
+    })
     return _hikesPromise
   }
 
@@ -65,8 +75,10 @@ export const useGroupHikesStore = defineStore('groupHikes', () => {
     const hike = await groupHikeService.update(id, data)
     const index = groupHikes.value.findIndex((h) => h.id === id)
     if (index !== -1) {
+      const existing = groupHikes.value[index]!
       groupHikes.value[index] = {
-        ...groupHikes.value[index],
+        ...existing,
+        id: existing.id,
         title: hike.title,
         status: hike.status,
         status_label: hike.status_label,
@@ -85,7 +97,13 @@ export const useGroupHikesStore = defineStore('groupHikes', () => {
     const hike = await groupHikeService.publish(id)
     const index = groupHikes.value.findIndex((h) => h.id === id)
     if (index !== -1) {
-      groupHikes.value[index] = { ...groupHikes.value[index], status: hike.status, status_label: hike.status_label }
+      const existing = groupHikes.value[index]!
+      groupHikes.value[index] = {
+        ...existing,
+        id: existing.id,
+        status: hike.status,
+        status_label: hike.status_label,
+      }
     }
     return hike
   }
@@ -94,7 +112,13 @@ export const useGroupHikesStore = defineStore('groupHikes', () => {
     const hike = await groupHikeService.unpublish(id)
     const index = groupHikes.value.findIndex((h) => h.id === id)
     if (index !== -1) {
-      groupHikes.value[index] = { ...groupHikes.value[index], status: hike.status, status_label: hike.status_label }
+      const existing = groupHikes.value[index]!
+      groupHikes.value[index] = {
+        ...existing,
+        id: existing.id,
+        status: hike.status,
+        status_label: hike.status_label,
+      }
     }
     return hike
   }
@@ -103,7 +127,13 @@ export const useGroupHikesStore = defineStore('groupHikes', () => {
     const hike = await groupHikeService.cancel(id, reason)
     const index = groupHikes.value.findIndex((h) => h.id === id)
     if (index !== -1) {
-      groupHikes.value[index] = { ...groupHikes.value[index], status: hike.status, status_label: hike.status_label }
+      const existing = groupHikes.value[index]!
+      groupHikes.value[index] = {
+        ...existing,
+        id: existing.id,
+        status: hike.status,
+        status_label: hike.status_label,
+      }
     }
     return hike
   }

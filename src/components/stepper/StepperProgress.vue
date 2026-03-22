@@ -9,7 +9,7 @@ const visibleSteps = computed(() => {
   for (let i = 0; i < STEP_LABELS.length; i++) {
     // Hide itinerary step (5) when not multi-day
     if (i === 5 && !ctx.formData.is_multi_day) continue
-    steps.push({ label: STEP_LABELS[i], index: i })
+    steps.push({ label: STEP_LABELS[i] ?? '', index: i })
   }
   return steps
 })

@@ -142,6 +142,7 @@ export interface GroupHikeListItem {
   created_at: string
   can_edit: boolean
   can_delete: boolean
+  can_publish: boolean
 }
 
 export interface GroupHikeFormData {

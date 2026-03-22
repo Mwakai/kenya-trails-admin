@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { inject, computed } from 'vue'
+import { inject } from 'vue'
 import { trailFormKey } from '@/composables/useTrailForm'
-import type { ItineraryDayForm } from '@/types/trail'
 
 const ctx = inject(trailFormKey)!
-
-const errors = computed(() => ctx.stepErrors.value[5] || {})
 
 function addDay() {
   const nextNum = ctx.formData.itinerary.length + 1
@@ -29,9 +26,13 @@ function removeDay(index: number) {
 function moveDay(index: number, direction: -1 | 1) {
   const target = index + direction
   if (target < 0 || target >= ctx.formData.itinerary.length) return
-  const temp = ctx.formData.itinerary[index]
-  ctx.formData.itinerary[index] = ctx.formData.itinerary[target]
-  ctx.formData.itinerary[target] = temp
+
+  const targetItem = ctx.formData.itinerary[target]
+  const indexItem = ctx.formData.itinerary[index]
+  if (targetItem && indexItem) {
+    ctx.formData.itinerary[index] = targetItem
+    ctx.formData.itinerary[target] = indexItem
+  }
   renumberDays()
 }
 
@@ -52,16 +53,28 @@ function parseNumber(event: Event): number | null {
 <template>
   <div class="step-content">
     <h2 class="step-title">Day-by-Day Itinerary</h2>
-    <p class="step-subtitle">Optional — Add a detailed breakdown of each day. You can skip this and describe the route in the main description instead.</p>
+    <p class="step-subtitle">
+      Optional — Add a detailed breakdown of each day. You can skip this and describe the route in
+      the main description instead.
+    </p>
 
     <div v-if="!ctx.formData.is_multi_day" class="info-banner">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <circle cx="12" cy="12" r="10" />
         <path d="M12 16v-4M12 8h.01" />
       </svg>
       <div>
         <p class="info-title">Itinerary is only available for multi-day treks</p>
-        <p class="info-desc">Enable "Multi-day trek" in the Trail Stats step to add an itinerary.</p>
+        <p class="info-desc">
+          Enable "Multi-day trek" in the Trail Stats step to add an itinerary.
+        </p>
       </div>
     </div>
 
@@ -71,11 +84,7 @@ function parseNumber(event: Event): number | null {
         <p>Click "Add Day" to start building your day-by-day breakdown.</p>
       </div>
 
-      <div
-        v-for="(day, index) in ctx.formData.itinerary"
-        :key="index"
-        class="day-card"
-      >
+      <div v-for="(day, index) in ctx.formData.itinerary" :key="index" class="day-card">
         <div class="day-header">
           <span class="day-badge">Day {{ day.day_number }}</span>
           <div class="day-actions">
@@ -85,7 +94,14 @@ function parseNumber(event: Event): number | null {
               :disabled="index === 0"
               @click="moveDay(index, -1)"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M18 15l-6-6-6 6" />
               </svg>
             </button>
@@ -95,16 +111,26 @@ function parseNumber(event: Event): number | null {
               :disabled="index === ctx.formData.itinerary.length - 1"
               @click="moveDay(index, 1)"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </button>
-            <button
-              class="btn-icon btn-icon-danger"
-              title="Remove day"
-              @click="removeDay(index)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="btn-icon btn-icon-danger" title="Remove day" @click="removeDay(index)">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
@@ -190,9 +216,7 @@ function parseNumber(event: Event): number | null {
         </div>
       </div>
 
-      <button class="btn btn-secondary add-day-btn" @click="addDay">
-        + Add Day
-      </button>
+      <button class="btn btn-secondary add-day-btn" @click="addDay">+ Add Day</button>
     </template>
   </div>
 </template>

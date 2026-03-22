@@ -139,8 +139,9 @@ function validateFile(file: File): string | null {
     return `File type .${ext} is not supported`
   }
   const type = getFileType(ext)
-  if (type && file.size > MAX_SIZES[type]) {
-    return `File exceeds ${formatSize(MAX_SIZES[type])} limit`
+  const maxSize = type ? MAX_SIZES[type] : undefined
+  if (maxSize !== undefined && file.size > maxSize) {
+    return `File exceeds ${formatSize(maxSize)} limit`
   }
   return null
 }
@@ -161,16 +162,6 @@ function formatDate(dateStr: string): string {
   const days = Math.floor(hours / 24)
   if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function formatFullDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function formatDuration(seconds: number): string {
@@ -198,11 +189,6 @@ function getThumbnailUrl(item: Media): string {
 function getPreviewUrl(item: Media): string {
   if (item.type === 'image' && item.variants) return item.variants.large
   return item.url
-}
-
-function getTypeIcon(type: string): string {
-  if (type === 'video') return 'video'
-  return 'document'
 }
 
 // Upload
@@ -262,7 +248,8 @@ function processUploadQueue() {
   const running = activeUploads.value.filter((u) => u.progress > 0)
   const slots = MAX_CONCURRENT - running.length
   for (let i = 0; i < Math.min(slots, pending.length); i++) {
-    startUpload(pending[i])
+    const item = pending[i]
+    if (item) startUpload(item)
   }
 }
 
@@ -502,11 +489,7 @@ onUnmounted(() => {
 
     <!-- Filters -->
     <div class="filters-bar">
-      <button
-        class="filter-btn"
-        :class="{ active: !activeFilter }"
-        @click="setFilter(undefined)"
-      >
+      <button class="filter-btn" :class="{ active: !activeFilter }" @click="setFilter(undefined)">
         All
       </button>
       <button
@@ -560,12 +543,7 @@ onUnmounted(() => {
 
     <!-- Upload Progress Items -->
     <div v-if="uploads.length > 0" class="upload-items">
-      <div
-        v-for="item in uploads"
-        :key="item.id"
-        class="upload-item"
-        :class="item.status"
-      >
+      <div v-for="item in uploads" :key="item.id" class="upload-item" :class="item.status">
         <div class="upload-info">
           <span class="upload-name">{{ truncateFilename(item.file.name) }}</span>
           <span class="upload-size">{{ formatSize(item.file.size) }}</span>
@@ -591,9 +569,7 @@ onUnmounted(() => {
     <!-- Bulk Action Bar -->
     <div v-if="selectedIds.size > 0 && canDelete" class="bulk-bar">
       <span class="bulk-count">{{ selectedIds.size }} selected</span>
-      <button class="btn btn-danger btn-sm" @click="openBulkDeleteModal">
-        Delete Selected
-      </button>
+      <button class="btn btn-danger btn-sm" @click="openBulkDeleteModal">Delete Selected</button>
       <button class="btn btn-secondary btn-sm" @click="selectedIds = new Set()">
         Clear Selection
       </button>
@@ -651,12 +627,7 @@ onUnmounted(() => {
 
     <!-- Grid View -->
     <div v-else-if="viewMode === 'grid'" class="media-grid">
-      <div
-        v-for="item in sortedMedia"
-        :key="item.id"
-        class="media-card"
-        @click="openDetail(item)"
-      >
+      <div v-for="item in sortedMedia" :key="item.id" class="media-card" @click="openDetail(item)">
         <div class="card-thumb">
           <img
             v-if="item.type === 'image'"
@@ -689,17 +660,13 @@ onUnmounted(() => {
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </div>
-            <label
+          <label
             v-if="canDelete"
             class="card-checkbox"
             :class="{ visible: isSelected(item.id) }"
             @click.stop
           >
-            <input
-              type="checkbox"
-              :checked="isSelected(item.id)"
-              @change="toggleSelect(item.id)"
-            />
+            <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" />
           </label>
           <span class="card-type-badge">{{ item.type }}</span>
         </div>
@@ -721,11 +688,7 @@ onUnmounted(() => {
         <thead>
           <tr>
             <th v-if="canDelete" style="width: 40px">
-              <input
-                type="checkbox"
-                :checked="isAllSelected"
-                @change="toggleSelectAll"
-              />
+              <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
             </th>
             <th style="width: 56px">Preview</th>
             <th class="sortable" @click="toggleSort('filename')">
@@ -889,7 +852,9 @@ onUnmounted(() => {
             <td class="filename-cell" :title="item.filename">
               {{ truncateFilename(item.filename, 36) }}
             </td>
-            <td><span class="type-badge">{{ item.type }}</span></td>
+            <td>
+              <span class="type-badge">{{ item.type }}</span>
+            </td>
             <td>{{ formatSize(item.size) }}</td>
             <td>{{ item.uploaded_by.full_name }}</td>
             <td>{{ formatDate(item.created_at) }}</td>
@@ -912,11 +877,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Detail Modal -->
-    <div
-      v-if="showDetailModal && selectedMedia"
-      class="modal-overlay"
-      @click.self="closeDetail"
-    >
+    <div v-if="showDetailModal && selectedMedia" class="modal-overlay" @click.self="closeDetail">
       <div class="modal modal-lg">
         <div class="modal-header">
           <h2>Media Details</h2>
@@ -992,10 +953,7 @@ onUnmounted(() => {
                   >{{ selectedMedia.type }} &middot; {{ selectedMedia.mime_type }}</span
                 >
               </div>
-              <div
-                v-if="selectedMedia.width && selectedMedia.height"
-                class="info-item"
-              >
+              <div v-if="selectedMedia.width && selectedMedia.height" class="info-item">
                 <span class="info-label">Dimensions</span>
                 <span class="info-value"
                   >{{ selectedMedia.width }} &times; {{ selectedMedia.height }} px</span
@@ -1015,11 +973,7 @@ onUnmounted(() => {
             <div v-if="selectedMedia.variants" class="variants-section">
               <h3>Image Variants</h3>
               <div class="variant-grid">
-                <div
-                  v-for="(url, name) in selectedMedia.variants"
-                  :key="name"
-                  class="variant-card"
-                >
+                <div v-for="(url, name) in selectedMedia.variants" :key="name" class="variant-card">
                   <div class="variant-preview" @click="openLightbox(url)">
                     <img :src="url" :alt="`${name} variant`" loading="lazy" />
                   </div>
@@ -1075,23 +1029,21 @@ onUnmounted(() => {
           <template v-if="mediaToDelete">
             <p>
               Are you sure you want to delete
-              <strong>{{ mediaToDelete.filename }}</strong>?
+              <strong>{{ mediaToDelete.filename }}</strong
+              >?
             </p>
           </template>
           <template v-else>
             <p>
               Are you sure you want to delete
-              <strong>{{ selectedIds.size }} item{{ selectedIds.size > 1 ? 's' : '' }}</strong>?
+              <strong>{{ selectedIds.size }} item{{ selectedIds.size > 1 ? 's' : '' }}</strong
+              >?
             </p>
           </template>
           <p class="delete-note">This action can be undone by an administrator.</p>
         </div>
         <div class="modal-footer">
-          <button
-            class="btn btn-secondary"
-            :disabled="isDeleting"
-            @click="closeDeleteModal"
-          >
+          <button class="btn btn-secondary" :disabled="isDeleting" @click="closeDeleteModal">
             Cancel
           </button>
           <button class="btn btn-danger" :disabled="isDeleting" @click="handleDelete">
@@ -1568,7 +1520,6 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
 }
 
-
 /* Bulk Action Bar */
 .bulk-bar {
   display: flex;
@@ -1606,7 +1557,7 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-.card-checkbox input[type="checkbox"] {
+.card-checkbox input[type='checkbox'] {
   width: 18px;
   height: 18px;
   cursor: pointer;
@@ -1733,7 +1684,7 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
 }
 
-.media-table input[type="checkbox"] {
+.media-table input[type='checkbox'] {
   width: 16px;
   height: 16px;
   cursor: pointer;

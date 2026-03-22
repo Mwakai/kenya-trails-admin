@@ -65,7 +65,7 @@ export function useGroupHikeForm(hikeId?: number) {
   const isLoading = ref(false)
   const isSaving = ref(false)
   const existingHikeId = ref<number | null>(hikeId ?? null)
-  let savedSnapshot = ref<string | null>(null)
+  const savedSnapshot = ref<string | null>(null)
 
   const isEditMode = computed(() => existingHikeId.value !== null)
 
@@ -93,7 +93,7 @@ export function useGroupHikeForm(hikeId?: number) {
   function populateFromHike(hike: GroupHike) {
     // The API may return data in nested objects (GroupHike type) or flat (like GroupHikeListItem).
     // We check nested first, fall back to top-level flat fields.
-    const h = hike as GroupHike & Record<string, any>
+    const h = hike as GroupHike & Record<string, unknown>
 
     formData.title = hike.title
     formData.slug = hike.slug
@@ -103,43 +103,49 @@ export function useGroupHikeForm(hikeId?: number) {
     formData.company_id = hike.company?.id ?? null
 
     // Location
-    formData.location_type = hike.location?.type ?? h.location_type ?? 'trail'
+    formData.location_type = (hike.location?.type ?? h.location_type ?? 'trail') as
+      | 'trail'
+      | 'custom'
     formData.trail_id = hike.trail?.id ?? null
     const isCustom = formData.location_type === 'custom'
-    formData.custom_location_name = isCustom ? (hike.location?.name ?? h.custom_location_name ?? '') : ''
-    formData.latitude = hike.location?.latitude ?? h.latitude ?? null
-    formData.longitude = hike.location?.longitude ?? h.longitude ?? null
-    formData.region_id = hike.location?.region?.id ?? h.region_id ?? null
+    formData.custom_location_name = isCustom
+      ? String(hike.location?.name ?? h.custom_location_name ?? '')
+      : ''
+    formData.latitude = hike.location?.latitude ?? (h.latitude as number | null) ?? null
+    formData.longitude = hike.location?.longitude ?? (h.longitude as number | null) ?? null
+    formData.region_id = hike.location?.region?.id ?? (h.region_id as number | null) ?? null
     formData.meeting_point = hike.meeting_point ?? ''
 
     // Dates — nested under hike.dates or flat on hike
-    formData.start_date = toDateInput(hike.dates?.start_date ?? h.start_date)
-    formData.start_time = toTimeInput(hike.dates?.start_time ?? h.start_time)
-    formData.is_multi_day = hike.dates?.is_multi_day ?? h.is_multi_day ?? false
-    formData.end_date = toDateInput(hike.dates?.end_date ?? h.end_date)
-    formData.end_time = toTimeInput(hike.dates?.end_time ?? h.end_time)
+    formData.start_date = toDateInput(hike.dates?.start_date ?? (h.start_date as string | null))
+    formData.start_time = toTimeInput(hike.dates?.start_time ?? (h.start_time as string | null))
+    formData.is_multi_day = (hike.dates?.is_multi_day ?? h.is_multi_day ?? false) as boolean
+    formData.end_date = toDateInput(hike.dates?.end_date ?? (h.end_date as string | null))
+    formData.end_time = toTimeInput(hike.dates?.end_time ?? (h.end_time as string | null))
 
     // Capacity
     const rawMax = hike.capacity?.max_participants ?? h.max_participants ?? null
     formData.max_participants = rawMax != null ? Number(rawMax) : null
 
     // Registration
-    formData.registration_url = hike.registration?.url ?? h.registration_url ?? ''
-    formData.registration_deadline = toDateInput(hike.registration?.deadline ?? h.registration_deadline)
-    formData.registration_notes = hike.registration?.notes ?? h.registration_notes ?? ''
+    formData.registration_url = (hike.registration?.url ?? h.registration_url ?? '') as string
+    formData.registration_deadline = toDateInput(
+      hike.registration?.deadline ?? (h.registration_deadline as string | null),
+    )
+    formData.registration_notes = (hike.registration?.notes ?? h.registration_notes ?? '') as string
 
-    // Pricing — price may come back as a string from Laravel decimal columns
-    formData.is_free = hike.pricing?.is_free ?? h.is_free ?? false
+    // Pricing
+    formData.is_free = (hike.pricing?.is_free ?? h.is_free ?? false) as boolean
     const rawPrice = hike.pricing?.price ?? h.price ?? null
     formData.price = rawPrice != null ? Number(rawPrice) : null
-    formData.price_currency = hike.pricing?.currency ?? h.price_currency ?? 'KES'
-    formData.price_notes = hike.pricing?.notes ?? h.price_notes ?? ''
+    formData.price_currency = (hike.pricing?.currency ?? h.price_currency ?? 'KES') as string
+    formData.price_notes = (hike.pricing?.notes ?? h.price_notes ?? '') as string
 
     // Contact
-    formData.contact_name = hike.contact?.name ?? h.contact_name ?? ''
-    formData.contact_email = hike.contact?.email ?? h.contact_email ?? ''
-    formData.contact_phone = hike.contact?.phone ?? h.contact_phone ?? ''
-    formData.contact_whatsapp = hike.contact?.whatsapp ?? h.contact_whatsapp ?? ''
+    formData.contact_name = (hike.contact?.name ?? h.contact_name ?? '') as string
+    formData.contact_email = (hike.contact?.email ?? h.contact_email ?? '') as string
+    formData.contact_phone = (hike.contact?.phone ?? h.contact_phone ?? '') as string
+    formData.contact_whatsapp = (hike.contact?.whatsapp ?? h.contact_whatsapp ?? '') as string
 
     formData.difficulty = hike.difficulty as Difficulty
     formData.featured_image_id = hike.featured_image?.id ?? null
@@ -219,10 +225,13 @@ export function useGroupHikeForm(hikeId?: number) {
       const payload = buildPayload()
 
       if (isEditMode.value && existingHikeId.value) {
-        hike = await store.updateGroupHike(existingHikeId.value, payload as Partial<GroupHikeFormData>)
+        hike = await store.updateGroupHike(
+          existingHikeId.value,
+          payload as Partial<GroupHikeFormData>,
+        )
         toast.success('Group hike updated successfully')
       } else {
-        hike = await store.createGroupHike(payload as GroupHikeFormData)
+        hike = await store.createGroupHike(payload as unknown as GroupHikeFormData)
         existingHikeId.value = hike.id
         toast.success('Group hike created successfully')
       }
@@ -236,7 +245,9 @@ export function useGroupHikeForm(hikeId?: number) {
           if (validationErrors) {
             const mapped: Record<string, string> = {}
             for (const [field, messages] of Object.entries(validationErrors)) {
-              mapped[field] = messages[0]
+              if (messages[0]) {
+                mapped[field] = messages[0]
+              }
             }
             errors.value = { ...errors.value, ...mapped }
           }
@@ -251,7 +262,8 @@ export function useGroupHikeForm(hikeId?: number) {
   }
 
   function clearError(field: string) {
-    const { [field]: _, ...rest } = errors.value
+    const rest = { ...errors.value }
+    delete rest[field]
     errors.value = rest
   }
 

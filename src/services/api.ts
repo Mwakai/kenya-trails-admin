@@ -1,7 +1,10 @@
+import * as Sentry from '@sentry/vue'
+
 const API_URL = import.meta.env.VITE_API_URL
 
 const SERVER_ERROR_FALLBACK = 'Something went wrong. Please try again later.'
-const NETWORK_ERROR_FALLBACK = 'Unable to connect to the server. Please check your connection and try again.'
+const NETWORK_ERROR_FALLBACK =
+  'Unable to connect to the server. Please check your connection and try again.'
 
 const SENSITIVE_PATTERNS = [
   /SQLSTATE/i,
@@ -57,8 +60,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    ...headers as Record<string, string>,
+    Accept: 'application/json',
+    ...(headers as Record<string, string>),
   }
 
   // Add authorization header if required
@@ -75,17 +78,32 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       ...restOptions,
       headers: requestHeaders,
     })
-  } catch {
+  } catch (err) {
+    // Network failure — no response at all (offline, DNS failure, etc.)
+    Sentry.captureException(err, {
+      extra: { endpoint, method: restOptions.method ?? 'GET' },
+    })
     throw new ApiError(NETWORK_ERROR_FALLBACK, 0)
   }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null)
-    throw new ApiError(
-      sanitizeErrorMessage(errorData?.message, response.status),
-      response.status,
-      errorData,
-    )
+    const sanitizedMessage = sanitizeErrorMessage(errorData?.message, response.status)
+
+    // Only report to Sentry for unexpected server errors, not auth/validation failures
+    if (response.status >= 500) {
+      Sentry.captureException(new Error(sanitizedMessage), {
+        extra: {
+          endpoint,
+          method: restOptions.method ?? 'GET',
+          status: response.status,
+          rawMessage: errorData?.message,
+          data: errorData,
+        },
+      })
+    }
+
+    throw new ApiError(sanitizedMessage, response.status, errorData)
   }
 
   return response.json()

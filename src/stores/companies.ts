@@ -25,7 +25,10 @@ export const useCompaniesStore = defineStore('companies', () => {
   let _companiesPromise: Promise<void> | null = null
   let _dropdownPromise: Promise<void> | null = null
 
-  async function fetchCompanies(params?: { page?: number; per_page?: number; search?: string }, opts?: { silent?: boolean }): Promise<void> {
+  async function fetchCompanies(
+    params?: { page?: number; per_page?: number; search?: string },
+    opts?: { silent?: boolean },
+  ): Promise<void> {
     if (!opts?.silent) loading.value = true
     error.value = null
     try {
@@ -57,7 +60,9 @@ export const useCompaniesStore = defineStore('companies', () => {
   async function ensureDropdownCompanies(): Promise<void> {
     if (_dropdownInitialized.value && dropdownCompanies.value.length > 0) return
     if (_dropdownPromise) return _dropdownPromise
-    _dropdownPromise = fetchDropdownCompanies().finally(() => { _dropdownPromise = null })
+    _dropdownPromise = fetchDropdownCompanies().finally(() => {
+      _dropdownPromise = null
+    })
     return _dropdownPromise
   }
 
@@ -69,7 +74,9 @@ export const useCompaniesStore = defineStore('companies', () => {
       return
     }
     if (_companiesPromise) return _companiesPromise
-    _companiesPromise = fetchCompanies(params).finally(() => { _companiesPromise = null })
+    _companiesPromise = fetchCompanies(params).finally(() => {
+      _companiesPromise = null
+    })
     return _companiesPromise
   }
 
@@ -85,8 +92,10 @@ export const useCompaniesStore = defineStore('companies', () => {
     const company = await companyService.update(id, data)
     const index = companies.value.findIndex((c) => c.id === id)
     if (index !== -1) {
+      const existing = companies.value[index]!
       companies.value[index] = {
-        ...companies.value[index],
+        ...existing,
+        id: existing.id,
         name: company.name,
         slug: company.slug,
         is_verified: company.is_verified,

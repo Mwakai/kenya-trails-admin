@@ -15,7 +15,7 @@ function update(field: keyof GroupHikeFormData, value: unknown) {
 }
 
 function todayDate(): string {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toISOString().split('T')[0] ?? ''
 }
 </script>
 

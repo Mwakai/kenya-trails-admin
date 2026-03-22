@@ -9,7 +9,6 @@ import { useTrailsStore } from '@/stores/trails'
 import type { GroupHikeListItem } from '@/types/groupHike'
 import GroupHikeTable from '@/components/group-hikes/GroupHikeTable.vue'
 import GroupHikeCard from '@/components/group-hikes/GroupHikeCard.vue'
-import GroupHikeStatusBadge from '@/components/group-hikes/GroupHikeStatusBadge.vue'
 import CancelModal from '@/components/group-hikes/modals/CancelModal.vue'
 import DeleteConfirmModal from '@/components/group-hikes/modals/DeleteConfirmModal.vue'
 
@@ -25,7 +24,6 @@ const {
   hasActiveFilters,
   handleSearchInput,
   handleFilterChange,
-  setStatusFilter,
   clearFilters,
   goToPage,
   handlePerPageChange,
@@ -34,7 +32,6 @@ const {
 // Permissions
 const canCreate = computed(() => authStore.hasAnyPermission(['group_hikes.create']))
 const canPublish = computed(() => authStore.hasAnyPermission(['group_hikes.publish']))
-const canViewAll = computed(() => authStore.hasAnyPermission(['group_hikes.view_all']))
 
 // View mode
 const viewMode = ref<'table' | 'grid'>('table')
@@ -86,7 +83,7 @@ async function loadHikes() {
     date_from: filters.value.date_from || undefined,
     date_to: filters.value.date_to || undefined,
     search: filters.value.search || undefined,
-  } as any)
+  } as Parameters<typeof store.fetchGroupHikes>[0])
 }
 
 function switchTab(tab: Tab) {
@@ -96,13 +93,13 @@ function switchTab(tab: Tab) {
   switch (tab) {
     case 'upcoming':
       filters.value.status = ''
-      filters.value.date_from = new Date().toISOString().split('T')[0]
+      filters.value.date_from = new Date().toISOString().split('T')[0] ?? ''
       filters.value.date_to = ''
       break
     case 'past':
       filters.value.status = 'completed'
       filters.value.date_from = ''
-      filters.value.date_to = new Date().toISOString().split('T')[0]
+      filters.value.date_to = new Date().toISOString().split('T')[0] ?? ''
       break
     case 'drafts':
       filters.value.status = 'draft'
@@ -161,6 +158,14 @@ function openDeleteModal(hike: GroupHikeListItem) {
   hikeForAction.value = hike
   showDeleteModal.value = true
 }
+function closeCancelModal() {
+  showCancelModal.value = false
+  hikeForAction.value = null
+}
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  hikeForAction.value = null
+}
 
 async function handleDeleteConfirm() {
   if (!hikeForAction.value) return
@@ -171,10 +176,7 @@ async function handleDeleteConfirm() {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadHikes(),
-    trailsStore.ensureRegions(),
-  ])
+  await Promise.all([loadHikes(), trailsStore.ensureRegions()])
 })
 </script>
 
@@ -194,7 +196,7 @@ onMounted(async () => {
     <!-- Tabs -->
     <div class="tab-nav">
       <button
-        v-for="tab in (['upcoming', 'past', 'drafts', 'cancelled', 'all'] as const)"
+        v-for="tab in ['upcoming', 'past', 'drafts', 'cancelled', 'all'] as const"
         :key="tab"
         class="tab-btn"
         :class="{ active: activeTab === tab }"
@@ -207,7 +209,15 @@ onMounted(async () => {
     <!-- Filters -->
     <div class="filters-bar">
       <div class="search-box">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          class="search-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
@@ -242,11 +252,7 @@ onMounted(async () => {
           @change="handleFilterChange(loadHikes)"
         >
           <option :value="null">All Regions</option>
-          <option
-            v-for="region in trailsStore.regions"
-            :key="region.id"
-            :value="region.id"
-          >
+          <option v-for="region in trailsStore.regions" :key="region.id" :value="region.id">
             {{ region.name }}
           </option>
         </select>
@@ -269,13 +275,37 @@ onMounted(async () => {
 
         <!-- View toggle -->
         <div class="view-toggle">
-          <button class="toggle-btn" :class="{ active: viewMode === 'table' }" title="Table view" @click="viewMode = 'table'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button
+            class="toggle-btn"
+            :class="{ active: viewMode === 'table' }"
+            title="Table view"
+            @click="viewMode = 'table'"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
           </button>
-          <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" title="Grid view" @click="viewMode = 'grid'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button
+            class="toggle-btn"
+            :class="{ active: viewMode === 'grid' }"
+            title="Grid view"
+            @click="viewMode = 'grid'"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <rect x="3" y="3" width="7" height="7" />
               <rect x="14" y="3" width="7" height="7" />
               <rect x="3" y="14" width="7" height="7" />
@@ -284,7 +314,11 @@ onMounted(async () => {
           </button>
         </div>
 
-        <button v-if="hasActiveFilters" class="btn btn-secondary btn-sm" @click="clearFilters(loadHikes)">
+        <button
+          v-if="hasActiveFilters"
+          class="btn btn-secondary btn-sm"
+          @click="clearFilters(loadHikes)"
+        >
           Clear Filters
         </button>
       </div>
@@ -304,8 +338,18 @@ onMounted(async () => {
 
     <!-- Empty -->
     <div v-else-if="store.groupHikes.length === 0" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="empty-icon">
-        <path d="M17 8C8 10 5.9 16.17 3.82 19.15a1 1 0 001.43 1.38A6.84 6.84 0 018.5 19c2 0 3.5 1 6.5 1s5-2 5-7c0-7-3.5-5-3-5z" />
+      <svg
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        class="empty-icon"
+      >
+        <path
+          d="M17 8C8 10 5.9 16.17 3.82 19.15a1 1 0 001.43 1.38A6.84 6.84 0 018.5 19c2 0 3.5 1 6.5 1s5-2 5-7c0-7-3.5-5-3-5z"
+        />
       </svg>
       <p v-if="hasActiveFilters">No hikes match your filters.</p>
       <template v-else>
@@ -348,9 +392,14 @@ onMounted(async () => {
       <div v-if="(store.meta?.total ?? 0) > 0" class="pagination-container">
         <div class="pagination-left">
           <span class="pagination-info">
-            Showing {{ paginationInfo.start }} to {{ paginationInfo.end }} of {{ paginationInfo.total }} hikes
+            Showing {{ paginationInfo.start }} to {{ paginationInfo.end }} of
+            {{ paginationInfo.total }} hikes
           </span>
-          <select v-model="filters.per_page" class="per-page-select" @change="handlePerPageChange(loadHikes)">
+          <select
+            v-model="filters.per_page"
+            class="per-page-select"
+            @change="handlePerPageChange(loadHikes)"
+          >
             <option :value="15">15 per page</option>
             <option :value="25">25 per page</option>
             <option :value="50">50 per page</option>
@@ -360,9 +409,18 @@ onMounted(async () => {
           <button
             class="pagination-btn"
             :disabled="(store.meta?.current_page ?? 1) === 1"
-            @click="goToPage((store.meta?.current_page ?? 1) - 1, store.meta?.last_page ?? 1, loadHikes)"
+            @click="
+              goToPage((store.meta?.current_page ?? 1) - 1, store.meta?.last_page ?? 1, loadHikes)
+            "
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
@@ -370,18 +428,32 @@ onMounted(async () => {
             v-for="(page, index) in pageNumbers"
             :key="index"
             class="pagination-btn"
-            :class="{ active: page === store.meta?.current_page, 'pagination-ellipsis-btn': page === '...' }"
+            :class="{
+              active: page === store.meta?.current_page,
+              'pagination-ellipsis-btn': page === '...',
+            }"
             :disabled="page === '...'"
-            @click="page !== '...' && goToPage(page as number, store.meta?.last_page ?? 1, loadHikes)"
+            @click="
+              page !== '...' && goToPage(page as number, store.meta?.last_page ?? 1, loadHikes)
+            "
           >
             {{ page }}
           </button>
           <button
             class="pagination-btn"
             :disabled="(store.meta?.current_page ?? 1) === (store.meta?.last_page ?? 1)"
-            @click="goToPage((store.meta?.current_page ?? 1) + 1, store.meta?.last_page ?? 1, loadHikes)"
+            @click="
+              goToPage((store.meta?.current_page ?? 1) + 1, store.meta?.last_page ?? 1, loadHikes)
+            "
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M9 18l6-6-6-6" />
             </svg>
           </button>
@@ -395,7 +467,7 @@ onMounted(async () => {
       :hike-name="hikeForAction.title"
       :loading="actions.actionLoading.value"
       @confirm="handleCancelConfirm"
-      @close="showCancelModal = false; hikeForAction = null"
+      @close="closeCancelModal"
     />
 
     <!-- Delete Modal -->
@@ -404,7 +476,7 @@ onMounted(async () => {
       :hike-name="hikeForAction.title"
       :loading="actions.actionLoading.value"
       @confirm="handleDeleteConfirm"
-      @close="showDeleteModal = false; hikeForAction = null"
+      @close="closeDeleteModal"
     />
   </div>
 </template>
@@ -575,7 +647,9 @@ onMounted(async () => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state {
