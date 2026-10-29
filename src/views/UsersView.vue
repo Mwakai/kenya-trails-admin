@@ -4,6 +4,7 @@ import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { ApiError } from '@/services/api'
 import type { User, CreateUserPayload, UpdateUserPayload, UserFilters } from '@/types/auth'
+import SkeletonList from '@/components/SkeletonList.vue'
 
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
@@ -350,10 +351,12 @@ onMounted(async () => {
     </div>
 
     <!-- Loading State -->
-    <div v-if="usersStore.loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading users...</p>
-    </div>
+    <SkeletonList
+      v-if="usersStore.loading"
+      :columns="['Name', 'Email', 'Role', 'Status']"
+      :rows="8"
+      label="Loading users"
+    />
 
     <!-- Error State -->
     <div v-else-if="usersStore.error" class="error-state">
@@ -684,6 +687,7 @@ onMounted(async () => {
               Cancel
             </button>
             <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+              <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
               {{
                 isSubmitting ? 'Saving...' : modalMode === 'create' ? 'Create User' : 'Save Changes'
               }}
@@ -712,6 +716,7 @@ onMounted(async () => {
             Cancel
           </button>
           <button class="btn btn-danger" :disabled="isDeleting" @click="handleDelete">
+            <span v-if="isDeleting" class="btn-spinner" aria-hidden="true" />
             {{ isDeleting ? 'Deleting...' : 'Delete' }}
           </button>
         </div>
@@ -849,7 +854,7 @@ onMounted(async () => {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {
@@ -863,7 +868,7 @@ onMounted(async () => {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .btn-close:hover {
@@ -871,30 +876,6 @@ onMounted(async () => {
 }
 
 /* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-16);
-  color: var(--color-text-secondary);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--space-4);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 /* Error State */
 .error-state {
@@ -1010,13 +991,13 @@ onMounted(async () => {
 }
 
 .status-active {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
 }
 
 .status-inactive {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--badge-red-bg);
+  color: var(--badge-red-text);
 }
 
 /* Pagination */
@@ -1153,7 +1134,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.02em;

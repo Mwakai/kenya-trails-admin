@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useActivityLogsStore } from '@/stores/activityLogs'
 import { useUsersStore } from '@/stores/users'
 import type { ActivityLogFilters } from '@/types/activityLog'
+import SkeletonList from '@/components/SkeletonList.vue'
 
 const store = useActivityLogsStore()
 const usersStore = useUsersStore()
@@ -248,10 +249,12 @@ onMounted(() => {
     </div>
 
     <!-- Loading State -->
-    <div v-if="store.loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading activity logs...</p>
-    </div>
+    <SkeletonList
+      v-if="store.loading"
+      :columns="['User', 'Activity', 'Details']"
+      :rows="8"
+      label="Loading activity logs"
+    />
 
     <!-- Error State -->
     <div v-else-if="store.error" class="error-state">
@@ -486,30 +489,6 @@ onMounted(() => {
 }
 
 /* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-16);
-  color: var(--color-text-secondary);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--space-4);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 /* Error State */
 .error-state {
@@ -621,33 +600,33 @@ onMounted(() => {
 }
 
 .event-green {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
 }
 
 .event-blue {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--badge-blue-bg);
+  color: var(--badge-blue-text);
 }
 
 .event-red {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--badge-red-bg);
+  color: var(--badge-red-text);
 }
 
 .event-yellow {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
 }
 
 .event-gray {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
 }
 
 .event-teal {
-  background: #ccfbf1;
-  color: #115e59;
+  background: var(--badge-teal-bg);
+  color: var(--badge-teal-text);
 }
 
 /* Details Row */
@@ -663,7 +642,7 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;

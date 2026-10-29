@@ -54,7 +54,7 @@ function parseNumber(event: Event): number | null {
   <div class="step-content">
     <h2 class="step-title">Day-by-Day Itinerary</h2>
     <p class="step-subtitle">
-      Optional — Add a detailed breakdown of each day. You can skip this and describe the route in
+      Optional. Add a detailed breakdown of each day. You can skip this and describe the route in
       the main description instead.
     </p>
 

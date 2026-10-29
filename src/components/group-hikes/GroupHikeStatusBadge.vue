@@ -37,22 +37,22 @@ function getStatusLabel(status: GroupHikeStatus): string {
 }
 
 .status-draft {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
 }
 
 .status-published {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
 }
 
 .status-cancelled {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--badge-red-bg);
+  color: var(--badge-red-text);
 }
 
 .status-completed {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--badge-blue-bg);
+  color: var(--badge-blue-text);
 }
 </style>

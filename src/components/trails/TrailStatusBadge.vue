@@ -36,17 +36,17 @@ function getStatusLabel(status: TrailStatus): string {
 }
 
 .status-draft {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
 }
 
 .status-published {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
 }
 
 .status-archived {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
 }
 </style>

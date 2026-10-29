@@ -26,6 +26,7 @@ const emit = defineEmits<{
       <div class="modal-footer">
         <button class="btn btn-secondary" :disabled="loading" @click="emit('close')">Cancel</button>
         <button class="btn btn-danger" :disabled="loading" @click="emit('confirm')">
+          <span v-if="loading" class="btn-spinner" aria-hidden="true" />
           {{ loading ? 'Deleting...' : 'Delete' }}
         </button>
       </div>
@@ -76,7 +77,7 @@ const emit = defineEmits<{
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
 
 .modal-footer {
@@ -113,7 +114,7 @@ const emit = defineEmits<{
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {
@@ -127,7 +128,7 @@ const emit = defineEmits<{
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .btn-close:hover {

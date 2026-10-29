@@ -872,6 +872,7 @@ onUnmounted(() => {
         :disabled="mediaStore.loading"
         @click="loadMore"
       >
+        <span v-if="mediaStore.loading" class="btn-spinner" aria-hidden="true" />
         {{ mediaStore.loading ? 'Loading...' : 'Load More' }}
       </button>
     </div>
@@ -935,6 +936,7 @@ onUnmounted(() => {
                   :disabled="isSavingAlt"
                   @click="saveAltText"
                 >
+                  <span v-if="isSavingAlt" class="btn-spinner" aria-hidden="true" />
                   {{ isSavingAlt ? 'Saving...' : 'Save' }}
                 </button>
               </div>
@@ -1047,6 +1049,7 @@ onUnmounted(() => {
             Cancel
           </button>
           <button class="btn btn-danger" :disabled="isDeleting" @click="handleDelete">
+            <span v-if="isDeleting" class="btn-spinner" aria-hidden="true" />
             {{ isDeleting ? 'Deleting...' : 'Delete' }}
           </button>
         </div>
@@ -1150,7 +1153,7 @@ onUnmounted(() => {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {
@@ -1184,7 +1187,7 @@ onUnmounted(() => {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .btn-close:hover {
@@ -1295,8 +1298,8 @@ onUnmounted(() => {
 }
 
 .upload-item.done {
-  border-color: #86efac;
-  background: #f0fdf4;
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
 }
 
 .upload-info {
@@ -1326,7 +1329,7 @@ onUnmounted(() => {
   flex: 1;
   height: 6px;
   background: var(--color-background-alt);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
@@ -1334,7 +1337,7 @@ onUnmounted(() => {
   height: 100%;
   background: var(--color-primary);
   transition: width var(--transition-fast);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
 }
 
 .progress-text {
@@ -1357,7 +1360,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-2);
   font-size: var(--font-size-xs);
-  color: #166534;
+  color: var(--badge-green-text);
 }
 
 /* Loading / Skeleton */
@@ -1421,23 +1424,14 @@ onUnmounted(() => {
 }
 
 .shimmer {
-  animation: shimmer 1.5s infinite;
+  animation: skeleton-shimmer 1.5s var(--ease-standard) infinite;
   background: linear-gradient(
     90deg,
-    var(--color-background-alt) 25%,
-    #e8e8e8 50%,
-    var(--color-background-alt) 75%
+    var(--skeleton-base) 25%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 75%
   );
   background-size: 200% 100%;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
 }
 
 /* Error State */
@@ -1570,7 +1564,7 @@ onUnmounted(() => {
   left: var(--space-2);
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   background: rgba(0, 0, 0, 0.6);
@@ -1976,9 +1970,9 @@ onUnmounted(() => {
   background: none;
   border: none;
   color: white;
-  font-size: 32px;
+  font-size: var(--font-size-3xl);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 @media (max-width: 768px) {

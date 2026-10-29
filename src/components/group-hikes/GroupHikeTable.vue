@@ -259,18 +259,18 @@ function handleAction(action: () => void) {
 .badge-featured {
   display: inline-block;
   padding: 1px 6px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 10px;
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
+  font-size: var(--font-size-xs);
   border-radius: var(--radius-sm);
 }
 
 .badge-multiday {
   display: inline-block;
   padding: 1px 6px;
-  background: #ede9fe;
-  color: #5b21b6;
-  font-size: 10px;
+  background: var(--badge-purple-bg);
+  color: var(--badge-purple-text);
+  font-size: var(--font-size-xs);
   border-radius: var(--radius-sm);
 }
 
@@ -308,7 +308,7 @@ function handleAction(action: () => void) {
 }
 
 .price-free {
-  color: #166534;
+  color: var(--badge-green-text);
   font-weight: var(--font-weight-medium);
 }
 

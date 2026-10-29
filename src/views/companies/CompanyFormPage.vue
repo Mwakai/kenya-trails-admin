@@ -239,6 +239,7 @@ onMounted(async () => {
         <div class="sidebar-card">
           <div class="sidebar-actions">
             <button type="submit" class="btn btn-primary btn-block" :disabled="isSaving">
+              <span v-if="isSaving" class="btn-spinner" aria-hidden="true" />
               {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Company' : 'Create Company') }}
             </button>
             <button type="button" class="btn btn-secondary btn-block" @click="router.push({ name: 'companies' })">

@@ -210,6 +210,7 @@ function getThumbUrl(media: Media): string {
 
           <div v-if="canLoadMore" class="load-more">
             <button class="btn btn-secondary" :disabled="mediaStore.loading" @click="loadMore">
+              <span v-if="mediaStore.loading" class="btn-spinner" aria-hidden="true" />
               {{ mediaStore.loading ? 'Loading...' : 'Load More' }}
             </button>
           </div>
@@ -234,6 +235,7 @@ function getThumbUrl(media: Media): string {
             :disabled="!uploadFile || isUploading"
             @click="handleUpload"
           >
+            <span v-if="isUploading" class="btn-spinner" aria-hidden="true" />
             {{ isUploading ? `Uploading ${uploadProgress}%...` : 'Upload' }}
           </button>
         </div>
@@ -305,7 +307,7 @@ function getThumbUrl(media: Media): string {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .modal-tabs {
@@ -470,7 +472,7 @@ function getThumbUrl(media: Media): string {
   width: 100%;
   height: 6px;
   background: var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 

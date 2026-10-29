@@ -37,22 +37,22 @@ function getDifficultyLabel(difficulty: TrailDifficulty): string {
 }
 
 .difficulty-easy {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
 }
 
 .difficulty-moderate {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--badge-blue-bg);
+  color: var(--badge-blue-text);
 }
 
 .difficulty-difficult {
-  background: #ffedd5;
-  color: #9a3412;
+  background: var(--badge-orange-bg);
+  color: var(--badge-orange-text);
 }
 
 .difficulty-expert {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--badge-red-bg);
+  color: var(--badge-red-text);
 }
 </style>

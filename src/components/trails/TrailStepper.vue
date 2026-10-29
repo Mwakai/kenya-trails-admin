@@ -203,7 +203,7 @@ async function handlePublish() {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .modal-body {
@@ -214,7 +214,7 @@ async function handlePublish() {
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
 
 .modal-footer {
@@ -251,6 +251,6 @@ async function handlePublish() {
 }
 
 .btn-danger:hover {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 </style>

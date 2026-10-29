@@ -51,6 +51,7 @@ function handleConfirm() {
       <div class="modal-footer">
         <button class="btn btn-secondary" :disabled="loading" @click="emit('close')">Back</button>
         <button class="btn btn-danger" :disabled="loading" @click="handleConfirm">
+          <span v-if="loading" class="btn-spinner" aria-hidden="true" />
           {{ loading ? 'Cancelling...' : 'Cancel Hike' }}
         </button>
       </div>
@@ -105,7 +106,7 @@ function handleConfirm() {
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   margin: 0 0 var(--space-4) 0;
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
 
 .form-group {
@@ -188,7 +189,7 @@ function handleConfirm() {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {
@@ -202,7 +203,7 @@ function handleConfirm() {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .btn-close:hover {

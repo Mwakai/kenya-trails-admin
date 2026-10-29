@@ -74,14 +74,11 @@ const handleLogin = async () => {
           />
         </div>
 
-        <button type="submit" class="login-button" :disabled="isLoading">
+        <button type="submit" class="login-button" :disabled="isLoading" :aria-busy="isLoading">
+          <span v-if="isLoading" class="btn-spinner" aria-hidden="true"></span>
           {{ isLoading ? 'Signing in...' : 'Sign In' }}
         </button>
       </form>
-
-      <div class="login-footer">
-        <a href="#" class="forgot-password">Forgot password?</a>
-      </div>
     </div>
   </div>
 </template>
@@ -93,29 +90,30 @@ const handleLogin = async () => {
   align-items: center;
   min-height: 100vh;
   background: var(--color-background-alt);
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .login-card {
-  padding: 40px;
+  padding: var(--space-10);
   width: 100%;
   max-width: 420px;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
 }
 
 .login-header h1 {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
   color: var(--color-text-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--space-2) 0;
 }
 
 .login-header p {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -123,27 +121,29 @@ const handleLogin = async () => {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .form-group label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
 }
 
 .form-group input {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
   background: var(--color-background);
 }
 
@@ -159,51 +159,40 @@ const handleLogin = async () => {
 }
 
 .error-message {
-  padding: 12px;
+  padding: var(--space-3);
   background-color: var(--color-error-bg);
   border: 1px solid var(--color-error-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-error);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .login-button {
-  padding: 12px 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
   background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.2s;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .login-button:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  transform: translateY(-2px);
+  transform: translateY(var(--lift-hover));
 }
 
 .login-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: 24px;
-}
-
-.forgot-password {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.forgot-password:hover {
-  color: var(--color-primary-hover);
-  text-decoration: underline;
 }
 </style>

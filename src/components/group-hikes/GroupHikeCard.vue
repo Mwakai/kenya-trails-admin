@@ -146,8 +146,8 @@ function formatDate(dateStr: string): string {
 .badge-featured {
   display: inline-block;
   padding: 2px 8px;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
@@ -156,8 +156,8 @@ function formatDate(dateStr: string): string {
 .badge-past {
   display: inline-block;
   padding: 2px 8px;
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
@@ -178,7 +178,7 @@ function formatDate(dateStr: string): string {
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-3) 0;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
 }
 
 .card-meta {
@@ -201,7 +201,7 @@ function formatDate(dateStr: string): string {
 }
 
 .price-free {
-  color: #166534;
+  color: var(--badge-green-text);
   font-weight: var(--font-weight-medium);
 }
 
@@ -241,6 +241,6 @@ function formatDate(dateStr: string): string {
 }
 
 .btn-danger:hover {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 </style>

@@ -11,6 +11,7 @@ import GroupHikeTable from '@/components/group-hikes/GroupHikeTable.vue'
 import GroupHikeCard from '@/components/group-hikes/GroupHikeCard.vue'
 import CancelModal from '@/components/group-hikes/modals/CancelModal.vue'
 import DeleteConfirmModal from '@/components/group-hikes/modals/DeleteConfirmModal.vue'
+import SkeletonList from '@/components/SkeletonList.vue'
 
 const router = useRouter()
 const store = useGroupHikesStore()
@@ -325,10 +326,12 @@ onMounted(async () => {
     </div>
 
     <!-- Loading -->
-    <div v-if="store.loading" class="loading-state">
-      <div class="spinner" />
-      <p>Loading group hikes...</p>
-    </div>
+    <SkeletonList
+      v-if="store.loading"
+      :columns="['Hike', 'Date', 'Location', 'Organizer', 'Price', 'Status', 'Actions']" :variant="viewMode"
+      :rows="6"
+      label="Loading group hikes"
+    />
 
     <!-- Error -->
     <div v-else-if="store.error" class="error-state">
@@ -627,30 +630,6 @@ onMounted(async () => {
 }
 
 /* States */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-16);
-  color: var(--color-text-secondary);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--space-4);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 .error-state {
   text-align: center;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject } from 'vue'
+import { inject, ref } from 'vue'
 import { trailFormKey } from '@/composables/useTrailForm'
 
 const ctx = inject(trailFormKey)!
@@ -9,6 +9,15 @@ const emit = defineEmits<{
   'save-draft': []
   publish: []
 }>()
+
+// Which button triggered the save, so only that one shows progress
+const pendingAction = ref<'save-draft' | 'publish' | null>(null)
+
+function trigger(action: 'save-draft' | 'publish') {
+  pendingAction.value = action
+  if (action === 'save-draft') emit('save-draft')
+  else emit('publish')
+}
 </script>
 
 <template>
@@ -27,9 +36,10 @@ const emit = defineEmits<{
       <button
         class="btn btn-secondary"
         :disabled="ctx.isSaving.value"
-        @click="emit('save-draft')"
+        @click="trigger('save-draft')"
       >
-        {{ ctx.isSaving.value ? 'Saving...' : 'Save Draft' }}
+        <span v-if="ctx.isSaving.value && pendingAction === 'save-draft'" class="btn-spinner" aria-hidden="true" />
+        {{ ctx.isSaving.value && pendingAction === 'save-draft' ? 'Saving...' : 'Save Draft' }}
       </button>
       <button
         v-if="ctx.currentStep.value < 6"
@@ -42,9 +52,10 @@ const emit = defineEmits<{
         v-else
         class="btn btn-primary"
         :disabled="!ctx.isReadyToPublish.value || ctx.isSaving.value"
-        @click="emit('publish')"
+        @click="trigger('publish')"
       >
-        {{ ctx.isSaving.value ? 'Publishing...' : 'Publish Trail' }}
+        <span v-if="ctx.isSaving.value && pendingAction === 'publish'" class="btn-spinner" aria-hidden="true" />
+        {{ ctx.isSaving.value && pendingAction === 'publish' ? 'Publishing...' : 'Publish Trail' }}
       </button>
     </div>
   </div>

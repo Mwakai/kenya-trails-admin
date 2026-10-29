@@ -137,7 +137,7 @@ function update(field: keyof GroupHikeFormData, value: unknown) {
   position: absolute;
   inset: 0;
   background: var(--color-border);
-  border-radius: 24px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: background var(--transition-fast);
 }

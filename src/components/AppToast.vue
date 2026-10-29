@@ -56,15 +56,15 @@ const { toasts, dismiss } = useToast()
 }
 
 .toast-success {
-  background: var(--color-success-bg, #f0fdf4);
-  color: var(--color-success, #15803d);
-  border: 1px solid var(--color-success-border, #86efac);
+  background: var(--color-success-bg, var(--color-success-bg));
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border, var(--color-success-border));
 }
 
 .toast-error {
-  background: var(--color-error-bg, #fff5f5);
-  color: var(--color-error, #c53030);
-  border: 1px solid var(--color-error-border, #fc8181);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
 }
 
 .toast-icon {
@@ -73,11 +73,15 @@ const { toasts, dismiss } = useToast()
 
 /* Transitions */
 .toast-enter-active {
-  transition: all 0.3s ease;
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
 }
 
 .toast-leave-active {
-  transition: all 0.2s ease;
+  transition:
+    opacity var(--duration-normal) var(--ease-in),
+    transform var(--duration-normal) var(--ease-in);
 }
 
 .toast-enter-from {

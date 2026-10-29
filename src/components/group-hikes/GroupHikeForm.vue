@@ -29,6 +29,15 @@ const emit = defineEmits<{
   'save-draft': []
 }>()
 
+// Which button triggered the save, so only that one shows progress
+const pendingAction = ref<'save-draft' | 'save' | null>(null)
+
+function trigger(action: 'save-draft' | 'save') {
+  pendingAction.value = action
+  if (action === 'save-draft') emit('save-draft')
+  else emit('save')
+}
+
 const authStore = useAuthStore()
 const trailsStore = useTrailsStore()
 
@@ -121,16 +130,18 @@ function handleFeaturedImageRemove() {
           <button
             class="btn btn-secondary btn-block"
             :disabled="isSaving"
-            @click="emit('save-draft')"
+            @click="trigger('save-draft')"
           >
-            {{ isSaving ? 'Saving...' : 'Save Draft' }}
+            <span v-if="isSaving && pendingAction === 'save-draft'" class="btn-spinner" aria-hidden="true" />
+            {{ isSaving && pendingAction === 'save-draft' ? 'Saving...' : 'Save Draft' }}
           </button>
           <button
             class="btn btn-primary btn-block"
             :disabled="isSaving"
-            @click="emit('save')"
+            @click="trigger('save')"
           >
-            {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Hike' : 'Create Hike') }}
+            <span v-if="isSaving && pendingAction === 'save'" class="btn-spinner" aria-hidden="true" />
+            {{ isSaving && pendingAction === 'save' ? 'Saving...' : (isEditMode ? 'Update Hike' : 'Create Hike') }}
           </button>
         </div>
       </div>

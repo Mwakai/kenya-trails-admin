@@ -135,7 +135,8 @@ onMounted(async () => {
               :disabled="actions.actionLoading.value"
               @click="handlePublish"
             >
-              Publish
+              <span v-if="actions.actionLoading.value" class="btn-spinner" aria-hidden="true" />
+              {{ actions.actionLoading.value ? 'Publishing...' : 'Publish' }}
             </button>
             <button
               v-if="canPublish && hike.status === 'published'"
@@ -143,7 +144,8 @@ onMounted(async () => {
               :disabled="actions.actionLoading.value"
               @click="handleUnpublish"
             >
-              Unpublish
+              <span v-if="actions.actionLoading.value" class="btn-spinner" aria-hidden="true" />
+              {{ actions.actionLoading.value ? 'Unpublishing...' : 'Unpublish' }}
             </button>
             <button
               v-if="hike.can_edit && hike.status === 'published'"
@@ -381,8 +383,8 @@ onMounted(async () => {
 .badge-featured {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
@@ -391,8 +393,8 @@ onMounted(async () => {
 .badge-past {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
@@ -456,7 +458,7 @@ onMounted(async () => {
 .description-content {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  line-height: 1.7;
+  line-height: var(--line-height-relaxed);
 }
 
 .detail-list {
@@ -490,10 +492,10 @@ onMounted(async () => {
   text-transform: capitalize;
 }
 
-.difficulty-easy { color: #166534; }
-.difficulty-moderate { color: #1e40af; }
-.difficulty-difficult { color: #9a3412; }
-.difficulty-expert { color: #991b1b; }
+.difficulty-easy { color: var(--badge-green-text); }
+.difficulty-moderate { color: var(--badge-blue-text); }
+.difficulty-difficult { color: var(--badge-orange-text); }
+.difficulty-expert { color: var(--badge-red-text); }
 
 .cancellation-reason {
   font-size: var(--font-size-sm);
@@ -547,12 +549,12 @@ onMounted(async () => {
 }
 
 .btn-warning {
-  background: #f59e0b;
+  background: var(--color-warning);
   color: white;
 }
 
 .btn-warning:hover:not(:disabled) {
-  background: #d97706;
+  background: var(--color-warning-hover);
 }
 
 .btn-danger {
@@ -561,7 +563,7 @@ onMounted(async () => {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {

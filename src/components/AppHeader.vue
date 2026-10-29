@@ -220,14 +220,21 @@ const closeUserMenu = () => {
 }
 
 /* Dropdown transition */
-.dropdown-enter-active,
+.dropdown-enter-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
 .dropdown-leave-active {
-  transition: all var(--transition-fast);
+  transition:
+    opacity var(--duration-fast) var(--ease-in),
+    transform var(--duration-fast) var(--ease-in);
 }
 
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(calc(var(--space-1) * -1));
 }
 </style>

@@ -146,7 +146,7 @@ function update(field: keyof GroupHikeFormData, value: unknown) {
 }
 
 .input-error:focus {
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  box-shadow: 0 0 0 3px var(--color-error-alpha);
 }
 
 .error-message {

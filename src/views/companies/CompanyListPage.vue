@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/services/api'
 import type { CompanyListItem } from '@/types/company'
+import SkeletonList from '@/components/SkeletonList.vue'
 
 const router = useRouter()
 const store = useCompaniesStore()
@@ -134,10 +135,12 @@ onMounted(() => {
     </div>
 
     <!-- Loading -->
-    <div v-if="store.loading" class="loading-state">
-      <div class="spinner" />
-      <p>Loading companies...</p>
-    </div>
+    <SkeletonList
+      v-if="store.loading"
+      :columns="['Company', 'Hikes', 'Verified', 'Actions']"
+      :rows="8"
+      label="Loading companies"
+    />
 
     <!-- Error -->
     <div v-else-if="store.error" class="error-state">
@@ -264,6 +267,7 @@ onMounted(() => {
         <div class="modal-footer">
           <button class="btn btn-secondary" :disabled="isDeleting" @click="closeDeleteModal">Cancel</button>
           <button class="btn btn-danger" :disabled="isDeleting" @click="handleDelete">
+            <span v-if="isDeleting" class="btn-spinner" aria-hidden="true" />
             {{ isDeleting ? 'Deleting...' : 'Delete' }}
           </button>
         </div>
@@ -329,29 +333,6 @@ onMounted(() => {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-alpha);
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-16);
-  color: var(--color-text-secondary);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--space-4);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .error-state {
@@ -462,8 +443,8 @@ onMounted(() => {
 .badge-verified {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
-  background: #dcfce7;
-  color: #166534;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
@@ -472,8 +453,8 @@ onMounted(() => {
 .badge-unverified {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
@@ -524,7 +505,7 @@ onMounted(() => {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {
@@ -626,7 +607,7 @@ onMounted(() => {
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
 
 .modal-footer {
@@ -643,7 +624,7 @@ onMounted(() => {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .btn-close:hover {

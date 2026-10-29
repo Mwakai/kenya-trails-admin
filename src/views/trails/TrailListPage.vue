@@ -9,6 +9,7 @@ import type { Trail, TrailFilters } from '@/types/trail'
 import TrailStatusBadge from '@/components/trails/TrailStatusBadge.vue'
 import TrailDifficultyBadge from '@/components/trails/TrailDifficultyBadge.vue'
 import TrailCard from '@/components/trails/TrailCard.vue'
+import SkeletonList from '@/components/SkeletonList.vue'
 
 const router = useRouter()
 const trailsStore = useTrailsStore()
@@ -322,10 +323,12 @@ onMounted(async () => {
     </div>
 
     <!-- Loading -->
-    <div v-if="trailsStore.loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading trails...</p>
-    </div>
+    <SkeletonList
+      v-if="trailsStore.loading"
+      :columns="['Trail', 'Location', 'Difficulty', 'Distance / Duration', 'Status', 'Created', 'Actions']" :variant="viewMode"
+      :rows="6"
+      label="Loading trails"
+    />
 
     <!-- Error -->
     <div v-else-if="trailsStore.error" class="error-state">
@@ -521,6 +524,7 @@ onMounted(async () => {
             Cancel
           </button>
           <button class="btn btn-danger" :disabled="isDeleting" @click="handleDelete">
+            <span v-if="isDeleting" class="btn-spinner" aria-hidden="true" />
             {{ isDeleting ? 'Deleting...' : 'Delete' }}
           </button>
         </div>
@@ -695,7 +699,7 @@ onMounted(async () => {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-hover);
 }
 
 .btn:disabled {
@@ -724,7 +728,7 @@ onMounted(async () => {
   font-size: var(--font-size-2xl);
   color: var(--color-text-secondary);
   cursor: pointer;
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 
 .btn-close:hover {
@@ -732,30 +736,6 @@ onMounted(async () => {
 }
 
 /* States */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-16);
-  color: var(--color-text-secondary);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--space-4);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 .error-state {
   text-align: center;
@@ -1060,7 +1040,7 @@ onMounted(async () => {
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
 
 .modal-footer {
